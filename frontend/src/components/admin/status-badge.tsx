@@ -5,7 +5,6 @@ const styles: Record<string, string> = {
   success: "bg-emerald-500/20 text-emerald-200",
   failed: "bg-rose-500/20 text-rose-200",
   manual: "bg-slate-500/30 text-slate-100",
-  ai: "bg-cyan-500/20 text-cyan-200",
   fallback: "bg-fuchsia-500/20 text-fuchsia-200",
   paid: "bg-emerald-500/20 text-emerald-200",
   confirmed: "bg-cyan-500/20 text-cyan-200",

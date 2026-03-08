@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 
 
 class FrameShape(models.Model):
@@ -71,7 +71,6 @@ class GlassesModel(models.Model):
 
     class CalibrationSource(models.TextChoices):
         MANUAL = "manual", "Manual"
-        AI = "ai", "AI"
         FALLBACK = "fallback", "Fallback"
 
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name="glasses_model")

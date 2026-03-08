@@ -17,8 +17,6 @@ export default function AdminSettingsPage() {
   });
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api";
-  const aiCalibratorUrl = process.env.NEXT_PUBLIC_AI_CALIBRATOR_URL || "";
-  const aiStatus = aiCalibratorUrl ? "Configured" : "Not configured";
 
   if (meQuery.isLoading) {
     return <AdminLoadingState label="Loading settings..." />;
@@ -40,10 +38,10 @@ export default function AdminSettingsPage() {
               API Base URL: <span className="text-white">{apiBaseUrl}</span>
             </p>
             <p>
-              AI Calibrator URL: <span className="text-white">{aiCalibratorUrl || "Not set"}</span>
+              Calibration Engine: <span className="text-white">Local fallback rules</span>
             </p>
             <p>
-              AI Calibrator Status: <span className="text-white">{aiStatus}</span>
+              Try-on Runtime: <span className="text-white">Frontend landmarks + Three.js</span>
             </p>
           </div>
         </AdminPanel>

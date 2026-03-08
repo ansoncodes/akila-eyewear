@@ -1,7 +1,7 @@
-﻿from django.contrib import admin, messages
+from django.contrib import admin, messages
 
 from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
-from .services.ai_calibration import apply_calibration, auto_calibrate_glasses_model
+from .services.calibration import apply_calibration, auto_calibrate_glasses_model
 
 
 @admin.register(FrameShape)
@@ -54,10 +54,10 @@ class GlassesModelAdmin(admin.ModelAdmin):
     list_filter = ("calibration_status", "calibration_source", "created_at")
     search_fields = ("product__name", "glb_file_url")
     readonly_fields = ("last_calibrated_at", "calibration_error")
-    actions = ["run_ai_auto_calibration"]
+    actions = ["run_auto_calibration"]
 
-    @admin.action(description="Run AI auto calibration on selected models")
-    def run_ai_auto_calibration(self, request, queryset):
+    @admin.action(description="Run auto calibration on selected models")
+    def run_auto_calibration(self, request, queryset):
         success_count = 0
         failed_count = 0
 
@@ -74,7 +74,7 @@ class GlassesModelAdmin(admin.ModelAdmin):
         if success_count:
             self.message_user(
                 request,
-                f"AI calibration completed for {success_count} model(s).",
+                f"Auto calibration completed for {success_count} model(s).",
                 level=messages.SUCCESS,
             )
         if failed_count:

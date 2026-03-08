@@ -1,6 +1,7 @@
-﻿from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -18,7 +19,7 @@ from .serializers import (
     ProductImageSerializer,
     ProductSerializer,
 )
-from .services.ai_calibration import apply_calibration, auto_calibrate_glasses_model
+from .services.calibration import apply_calibration, auto_calibrate_glasses_model
 
 User = get_user_model()
 
@@ -144,6 +145,42 @@ class GlassesModelAdminViewSet(viewsets.ModelViewSet):
     queryset = GlassesModel.objects.select_related("product", "product__category", "product__frame_shape")
     serializer_class = GlassesModelSerializer
     permission_classes = [permissions.IsAdminUser]
+    calibration_fields = {
+        "glb_file_url",
+        "scale",
+        "position_x",
+        "position_y",
+        "position_z",
+        "rotation_x",
+        "rotation_y",
+        "rotation_z",
+    }
+
+    def perform_create(self, serializer):
+        serializer.save(
+            calibration_status=GlassesModel.CalibrationStatus.SUCCESS,
+            calibration_source=GlassesModel.CalibrationSource.MANUAL,
+            calibration_error="",
+            last_calibrated_at=timezone.now(),
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        updated_fields = set(serializer.validated_data.keys())
+
+        if updated_fields & self.calibration_fields:
+            instance.calibration_status = GlassesModel.CalibrationStatus.SUCCESS
+            instance.calibration_source = GlassesModel.CalibrationSource.MANUAL
+            instance.calibration_error = ""
+            instance.last_calibrated_at = timezone.now()
+            instance.save(
+                update_fields=[
+                    "calibration_status",
+                    "calibration_source",
+                    "calibration_error",
+                    "last_calibrated_at",
+                ]
+            )
 
     @action(detail=True, methods=["post"], url_path="run-calibration")
     def run_calibration(self, request, pk=None):

@@ -67,7 +67,7 @@ export interface GlassesModel {
   rotation_y: number;
   rotation_z: number;
   calibration_status: "pending" | "success" | "failed";
-  calibration_source: "manual" | "ai" | "fallback";
+  calibration_source: "manual" | "fallback";
   calibration_error: string;
   last_calibrated_at: string | null;
   created_at: string;

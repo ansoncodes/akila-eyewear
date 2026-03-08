@@ -137,7 +137,7 @@ export default function AdminCalibrationPage() {
     <div className="space-y-4">
       <AdminPageHeader
         title="3D Calibration"
-        subtitle="Control manual and AI calibration values for virtual try-on alignment."
+        subtitle="Control manual and auto-calculated calibration values for virtual try-on alignment."
         action={
           <button
             type="button"
@@ -145,7 +145,7 @@ export default function AdminCalibrationPage() {
             onClick={() => runBulkMutation.mutate(selected)}
             className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60"
           >
-            Run AI Calibration (Selected)
+            Run Auto Calibration (Selected)
           </button>
         }
       />
@@ -168,7 +168,7 @@ export default function AdminCalibrationPage() {
         >
           <option value="">All Sources</option>
           <option value="manual">Manual</option>
-          <option value="ai">AI</option>
+
           <option value="fallback">Fallback</option>
         </select>
       </FilterBar>
@@ -252,7 +252,7 @@ export default function AdminCalibrationPage() {
                   onClick={() => runOneMutation.mutate(row.id)}
                   className="rounded-lg border border-cyan-700/70 px-2 py-1 text-xs text-cyan-200"
                 >
-                  Re-run AI
+                  Re-run Auto
                 </button>
                 <button
                   type="button"
@@ -370,3 +370,5 @@ export default function AdminCalibrationPage() {
     </div>
   );
 }
+
+
