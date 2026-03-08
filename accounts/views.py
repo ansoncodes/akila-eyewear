@@ -9,6 +9,7 @@ from .serializers import (
     AdminCustomerDetailSerializer,
     AdminCustomerListSerializer,
     LoginSerializer,
+    ProfileUpdateSerializer,
     RegisterSerializer,
     UserSerializer,
     customer_queryset_with_stats,
@@ -36,6 +37,16 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(request.user).data)
+
+    def delete(self, request):
+        request.user.delete()
+        return Response(status=204)
 
 
 class AdminCustomerViewSet(viewsets.ReadOnlyModelViewSet):

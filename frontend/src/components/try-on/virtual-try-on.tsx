@@ -780,21 +780,25 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
   }, [model]);
 
   if (!model?.glb_file_url) {
-    return <p className="text-sm text-rose-300">This product does not have a try-on model.</p>;
+    return (
+      <p className="rounded-2xl bg-[#fbf3ea] px-4 py-3 text-sm text-[#a26143]">
+        This product does not have a try-on model.
+      </p>
+    );
   }
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-video min-h-[320px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
+      <div className="relative aspect-video min-h-[320px] overflow-hidden rounded-3xl border border-[#eadccf] bg-[#f7efe7]">
         <button
           type="button"
           onClick={() => setDebugEnabled((prev) => !prev)}
-          className="absolute right-3 top-3 z-20 rounded-md bg-slate-900/80 px-2 py-1 text-[11px] font-medium text-slate-200"
+          className="absolute right-3 top-3 z-20 rounded-md bg-[#fff8f1]/90 px-2 py-1 text-[11px] font-medium text-[#6f5e54]"
         >
           {debugEnabled ? "Hide Debug" : "Show Debug"}
         </button>
         {debugEnabled && debugMetrics ? (
-          <div className="absolute left-3 top-3 z-20 rounded-md bg-black/70 px-2 py-1 font-mono text-[11px] text-emerald-300">
+          <div className="absolute left-3 top-3 z-20 rounded-md bg-[#2f2621]/80 px-2 py-1 font-mono text-[11px] text-[#d9f8d6]">
             <div>state: {debugMetrics.tracking}</div>
             <div>hold: {debugMetrics.holdFrames}</div>
             <div>temple: {debugMetrics.templeDistance.toFixed(4)}</div>
@@ -813,8 +817,8 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
         />
         <div ref={stageRef} className="pointer-events-none absolute inset-0" />
       </div>
-      <p className="text-xs text-slate-300">Keep your full face centered and well lit for best tracking.</p>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      <p className="text-xs text-[#7b6f68]">Keep your full face centered and well lit for best tracking.</p>
+      {error ? <p className="rounded-2xl bg-[#fbf3ea] px-4 py-2 text-sm text-[#a26143]">{error}</p> : null}
     </div>
   );
 }

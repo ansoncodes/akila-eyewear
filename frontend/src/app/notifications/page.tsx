@@ -39,7 +39,7 @@ export default function NotificationsPage() {
   const notifications = notificationsQuery.data ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl space-y-6 px-4 pb-10 pt-28 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-4xl text-white">Notifications</h1>
         <button onClick={() => readAllMutation.mutate()} className="rounded-lg border border-slate-700 px-4 py-2 text-sm">

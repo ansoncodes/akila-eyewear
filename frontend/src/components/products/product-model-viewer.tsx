@@ -23,7 +23,7 @@ export default function ProductModelViewer({ model }: ProductModelViewerProps) {
 
     let frameId = 0;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#020617");
+    scene.background = new THREE.Color("#f7efe7");
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -39,11 +39,11 @@ export default function ProductModelViewer({ model }: ProductModelViewerProps) {
     controls.minDistance = 0.5;
     controls.maxDistance = 3;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.35));
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
     keyLight.position.set(2, 2, 2);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0x93c5fd, 1.0);
+    const rimLight = new THREE.DirectionalLight(0xe9d6c8, 0.9);
     rimLight.position.set(-2, 1.5, -2);
     scene.add(rimLight);
 
@@ -97,7 +97,7 @@ export default function ProductModelViewer({ model }: ProductModelViewerProps) {
 
   if (!model?.glb_file_url) {
     return (
-      <div className="flex h-[420px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-900 text-slate-300">
+      <div className="flex h-[420px] items-center justify-center rounded-3xl bg-white text-[#7b6f68] shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         3D model unavailable for this product.
       </div>
     );
@@ -105,8 +105,8 @@ export default function ProductModelViewer({ model }: ProductModelViewerProps) {
 
   return (
     <div className="space-y-3">
-      <div ref={mountRef} className="h-[420px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900" />
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      <div ref={mountRef} className="h-[420px] overflow-hidden rounded-3xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.06)]" />
+      {error ? <p className="text-sm text-[#a26143]">{error}</p> : null}
     </div>
   );
 }

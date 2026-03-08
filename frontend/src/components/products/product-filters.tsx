@@ -1,4 +1,6 @@
-﻿"use client";
+"use client";
+
+import { Search } from "lucide-react";
 
 import type { Category, Collection, FrameShape } from "@/types/api";
 
@@ -7,6 +9,7 @@ interface ProductFiltersProps {
   collections: Collection[];
   frameShapes: FrameShape[];
   filters: {
+    search?: string;
     category?: string;
     collection?: string;
     frame_shape?: string;
@@ -26,17 +29,29 @@ export default function ProductFilters({ categories, collections, frameShapes, f
     onChange({});
   }
 
-  return (
-    <aside className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-      <h3 className="text-lg font-semibold text-white">Filters</h3>
+  const underlineInputClass =
+    "w-full border-b border-[#ddd] bg-transparent pb-2 text-sm text-[#2b2521] outline-none placeholder:text-[#b5aca5]";
+  const labelClass = "text-[11px] uppercase tracking-[0.16em] text-[#999]";
 
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wide text-slate-400">Category</label>
-        <select
-          value={filters.category ?? ""}
-          onChange={(e) => setValue("category", e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-        >
+  return (
+    <aside className="space-y-7">
+      <div className="space-y-2">
+        <label className={labelClass}>Search</label>
+        <div className="flex items-center gap-2 border-b border-[#ddd] pb-2">
+          <Search className="h-4 w-4 text-[#a09a95]" strokeWidth={1.5} />
+          <input
+            type="text"
+            value={filters.search ?? ""}
+            onChange={(e) => setValue("search", e.target.value)}
+            className="w-full bg-transparent text-sm text-[#2b2521] outline-none placeholder:text-[#b5aca5]"
+            placeholder="Search frames..."
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className={labelClass}>Category</label>
+        <select value={filters.category ?? ""} onChange={(e) => setValue("category", e.target.value)} className={underlineInputClass}>
           <option value="">All</option>
           {categories.map((item) => (
             <option key={item.id} value={item.id}>
@@ -46,13 +61,9 @@ export default function ProductFilters({ categories, collections, frameShapes, f
         </select>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wide text-slate-400">Collection</label>
-        <select
-          value={filters.collection ?? ""}
-          onChange={(e) => setValue("collection", e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-        >
+      <div className="space-y-2">
+        <label className={labelClass}>Collection</label>
+        <select value={filters.collection ?? ""} onChange={(e) => setValue("collection", e.target.value)} className={underlineInputClass}>
           <option value="">All</option>
           {collections.map((item) => (
             <option key={item.id} value={item.id}>
@@ -62,13 +73,9 @@ export default function ProductFilters({ categories, collections, frameShapes, f
         </select>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wide text-slate-400">Frame Shape</label>
-        <select
-          value={filters.frame_shape ?? ""}
-          onChange={(e) => setValue("frame_shape", e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-        >
+      <div className="space-y-2">
+        <label className={labelClass}>Frame Shape</label>
+        <select value={filters.frame_shape ?? ""} onChange={(e) => setValue("frame_shape", e.target.value)} className={underlineInputClass}>
           <option value="">All</option>
           {frameShapes.map((item) => (
             <option key={item.id} value={item.id}>
@@ -78,13 +85,9 @@ export default function ProductFilters({ categories, collections, frameShapes, f
         </select>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs uppercase tracking-wide text-slate-400">Gender</label>
-        <select
-          value={filters.gender ?? ""}
-          onChange={(e) => setValue("gender", e.target.value)}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-        >
+      <div className="space-y-2">
+        <label className={labelClass}>Gender</label>
+        <select value={filters.gender ?? ""} onChange={(e) => setValue("gender", e.target.value)} className={underlineInputClass}>
           <option value="">All</option>
           <option value="Men">Men</option>
           <option value="Women">Women</option>
@@ -92,33 +95,28 @@ export default function ProductFilters({ categories, collections, frameShapes, f
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wide text-slate-400">Min Price</label>
+      <div className="space-y-2">
+        <label className={labelClass}>Price Range</label>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <input
             type="number"
             value={filters.min_price ?? ""}
             onChange={(e) => setValue("min_price", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-            placeholder="0"
+            className={underlineInputClass}
+            placeholder="Min"
           />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-wide text-slate-400">Max Price</label>
+          <span className="text-[#b4a79f]">-</span>
           <input
             type="number"
             value={filters.max_price ?? ""}
             onChange={(e) => setValue("max_price", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-            placeholder="300"
+            className={underlineInputClass}
+            placeholder="Max"
           />
         </div>
       </div>
 
-      <button
-        onClick={reset}
-        className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-white hover:text-white"
-      >
+      <button onClick={reset} className="text-sm font-medium text-[#C4714F] transition hover:opacity-75">
         Reset Filters
       </button>
     </aside>

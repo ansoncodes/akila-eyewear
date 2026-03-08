@@ -16,6 +16,7 @@ import type {
   RegisterPayload,
   Review,
   User,
+  UserProfilePayload,
   Wishlist,
   Cart,
 } from "@/types/api";
@@ -32,6 +33,13 @@ export const authApi = {
   me: async () => {
     const { data } = await api.get<User>("/auth/me/");
     return data;
+  },
+  updateProfile: async (payload: UserProfilePayload) => {
+    const { data } = await api.patch<User>("/auth/me/", payload);
+    return data;
+  },
+  deleteProfile: async () => {
+    await api.delete("/auth/me/");
   },
 };
 

@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -97,7 +98,26 @@ class ProductViewSet(viewsets.ModelViewSet):
         if gender:
             queryset = queryset.filter(gender__iexact=gender)
 
+        queryset = self._apply_search_filter(queryset)
         return queryset
+
+    def _apply_search_filter(self, queryset):
+        search_term = self.request.query_params.get("search") or self.request.query_params.get("q")
+        if not search_term:
+            return queryset
+
+        search_term = search_term.strip()
+        if not search_term:
+            return queryset
+
+        return queryset.filter(
+            Q(name__icontains=search_term)
+            | Q(description__icontains=search_term)
+            | Q(category__name__icontains=search_term)
+            | Q(collection__name__icontains=search_term)
+            | Q(frame_shape__name__icontains=search_term)
+            | Q(frame_material__name__icontains=search_term)
+        ).distinct()
 
     def _apply_price_filters(self, queryset):
         min_price = self._parse_decimal_param("min_price")

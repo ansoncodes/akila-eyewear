@@ -6,6 +6,26 @@ export interface User {
   first_name: string;
   last_name: string;
   role: UserRole;
+  phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+}
+
+export interface UserProfilePayload {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
 }
 
 export interface LoginResponse {
@@ -91,6 +111,7 @@ export interface Product {
 }
 
 export interface ProductFilterParams {
+  search?: string;
   category?: number;
   frame_shape?: number;
   collection?: number;
