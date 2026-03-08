@@ -1,0 +1,15 @@
+﻿export const queryKeys = {
+  me: ["me"] as const,
+  products: (params?: Record<string, unknown>) => ["products", params ?? {}] as const,
+  product: (id: string | number) => ["product", id] as const,
+  categories: ["categories"] as const,
+  collections: ["collections"] as const,
+  frameShapes: ["frame-shapes"] as const,
+  frameMaterials: ["frame-materials"] as const,
+  cart: ["cart"] as const,
+  wishlist: ["wishlist"] as const,
+  orders: ["orders"] as const,
+  order: (id: string | number) => ["order", id] as const,
+  reviews: (productId: number) => ["reviews", productId] as const,
+  notifications: ["notifications"] as const,
+};
