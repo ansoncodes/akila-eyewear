@@ -1,4 +1,4 @@
-﻿export type UserRole = "admin" | "customer";
+export type UserRole = "admin" | "customer";
 
 export interface User {
   id: number;
@@ -50,6 +50,7 @@ export interface FrameMaterial {
 
 export interface ProductImage {
   id: number;
+  product?: number;
   image: string;
   is_primary: boolean;
 }
@@ -65,6 +66,10 @@ export interface GlassesModel {
   rotation_x: number;
   rotation_y: number;
   rotation_z: number;
+  calibration_status: "pending" | "success" | "failed";
+  calibration_source: "manual" | "ai" | "fallback";
+  calibration_error: string;
+  last_calibrated_at: string | null;
   created_at: string;
 }
 
@@ -167,6 +172,8 @@ export interface ShippingAddress {
 }
 
 export interface Payment {
+  order_id?: number;
+  user_id?: number;
   amount: string;
   status: "Pending" | "Paid" | "Failed";
   payment_method: string;
@@ -187,6 +194,8 @@ export interface Order {
 
 export interface Notification {
   id: number;
+  user?: number;
+  user_email?: string;
   title: string;
   message: string;
   is_read: boolean;

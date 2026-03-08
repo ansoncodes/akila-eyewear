@@ -1,4 +1,4 @@
-﻿export const queryKeys = {
+export const queryKeys = {
   me: ["me"] as const,
   products: (params?: Record<string, unknown>) => ["products", params ?? {}] as const,
   product: (id: string | number) => ["product", id] as const,
@@ -12,4 +12,19 @@
   order: (id: string | number) => ["order", id] as const,
   reviews: (productId: number) => ["reviews", productId] as const,
   notifications: ["notifications"] as const,
+  adminProducts: (params?: Record<string, unknown>) => ["admin-products", params ?? {}] as const,
+  adminProductImages: (productId: number) => ["admin-product-images", productId] as const,
+  adminGlassesModels: (params?: Record<string, unknown>) => ["admin-glasses-models", params ?? {}] as const,
+  adminCategories: ["admin-categories"] as const,
+  adminCollections: ["admin-collections"] as const,
+  adminFrameShapes: ["admin-frame-shapes"] as const,
+  adminFrameMaterials: ["admin-frame-materials"] as const,
+  adminOrders: (params?: Record<string, unknown>) => ["admin-orders", params ?? {}] as const,
+  adminOrder: (id: string | number) => ["admin-order", id] as const,
+  adminPayments: (params?: Record<string, unknown>) => ["admin-payments", params ?? {}] as const,
+  adminPayment: (orderId: string | number) => ["admin-payment", orderId] as const,
+  adminCustomers: (params?: Record<string, unknown>) => ["admin-customers", params ?? {}] as const,
+  adminCustomer: (id: string | number) => ["admin-customer", id] as const,
+  adminReviews: (params?: Record<string, unknown>) => ["admin-reviews", params ?? {}] as const,
+  adminNotifications: ["admin-notifications"] as const,
 };
