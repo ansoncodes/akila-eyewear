@@ -1,6 +1,6 @@
 ﻿from django.contrib import admin
 
-from .models import Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
+from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
 
 
 @admin.register(FrameShape)
@@ -23,10 +23,15 @@ class CollectionAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "is_active")
 
 
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "name")
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "price", "gender", "is_active")
-    list_filter = ("gender", "is_active", "collection", "frame_shape", "frame_material")
+    list_display = ("id", "name", "category", "price", "gender", "is_active")
+    list_filter = ("category", "gender", "is_active", "collection", "frame_shape", "frame_material")
     inlines = [ProductImageInline]
 
 

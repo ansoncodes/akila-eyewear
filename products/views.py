@@ -3,8 +3,9 @@
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import ValidationError
 
-from .models import Collection, FrameMaterial, FrameShape, GlassesModel, Product
+from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product
 from .serializers import (
+    CategorySerializer,
     CollectionSerializer,
     FrameMaterialSerializer,
     FrameShapeSerializer,
@@ -33,18 +34,21 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Product.objects.select_related(
-            "collection", "frame_shape", "frame_material", "glasses_model"
+            "category", "collection", "frame_shape", "frame_material", "glasses_model"
         ).prefetch_related("images")
 
         if not (self.request.user.is_authenticated and self.request.user.is_staff):
             queryset = queryset.filter(is_active=True)
 
+        category_id = self.request.query_params.get("category")
         frame_shape_id = self.request.query_params.get("frame_shape")
         collection_id = self.request.query_params.get("collection")
         gender = self.request.query_params.get("gender")
         min_price = self.request.query_params.get("min_price")
         max_price = self.request.query_params.get("max_price")
 
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
         if frame_shape_id:
             queryset = queryset.filter(frame_shape_id=frame_shape_id)
         if collection_id:
@@ -84,4 +88,10 @@ class FrameShapeViewSet(viewsets.ReadOnlyModelViewSet):
 class FrameMaterialViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = FrameMaterial.objects.all()
     serializer_class = FrameMaterialSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]

@@ -5,7 +5,7 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from PIL import Image
 
-from products.models import Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
+from products.models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
 
 
 class Command(BaseCommand):
@@ -14,9 +14,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.create_admin_user()
         collection = self.create_collection()
+        categories = self.create_categories()
         shapes = self.create_shapes()
         materials = self.create_materials()
-        self.create_products(collection, shapes, materials)
+        self.create_products(collection, categories, shapes, materials)
         self.stdout.write(self.style.SUCCESS("Seed data created successfully."))
 
     def create_admin_user(self):
@@ -50,6 +51,14 @@ class Command(BaseCommand):
             shapes[name] = shape
         return shapes
 
+    def create_categories(self):
+        category_names = ["Eyeglasses", "Sunglasses", "Reading Glasses"]
+        categories = {}
+        for name in category_names:
+            category, _ = Category.objects.get_or_create(name=name)
+            categories[name] = category
+        return categories
+
     def create_materials(self):
         material_names = ["Metal", "Acetate", "TR90"]
         materials = {}
@@ -68,13 +77,14 @@ class Command(BaseCommand):
         )
         return collection
 
-    def create_products(self, collection, shapes, materials):
+    def create_products(self, collection, categories, shapes, materials):
         product_data = [
             {
                 "name": "Solstice 01",
                 "description": "Classic rectangle frame in premium acetate.",
                 "price": "129.00",
                 "discount_price": "109.00",
+                "category": "Eyeglasses",
                 "shape": "Rectangle",
                 "material": "Acetate",
                 "gender": Product.Gender.UNISEX,
@@ -95,6 +105,7 @@ class Command(BaseCommand):
                 "description": "Round metal silhouette with lightweight build.",
                 "price": "149.00",
                 "discount_price": "129.00",
+                "category": "Sunglasses",
                 "shape": "Round",
                 "material": "Metal",
                 "gender": Product.Gender.UNISEX,
@@ -115,6 +126,7 @@ class Command(BaseCommand):
                 "description": "Cat eye frame with polished temple finish.",
                 "price": "159.00",
                 "discount_price": "139.00",
+                "category": "Eyeglasses",
                 "shape": "Cat Eye",
                 "material": "Acetate",
                 "gender": Product.Gender.WOMEN,
@@ -135,6 +147,7 @@ class Command(BaseCommand):
                 "description": "Aviator design with contemporary bridge detail.",
                 "price": "169.00",
                 "discount_price": "149.00",
+                "category": "Sunglasses",
                 "shape": "Aviator",
                 "material": "Metal",
                 "gender": Product.Gender.MEN,
@@ -155,6 +168,7 @@ class Command(BaseCommand):
                 "description": "Sport-inspired TR90 frame built for comfort.",
                 "price": "119.00",
                 "discount_price": "99.00",
+                "category": "Reading Glasses",
                 "shape": "Rectangle",
                 "material": "TR90",
                 "gender": Product.Gender.MEN,
@@ -173,12 +187,13 @@ class Command(BaseCommand):
         ]
 
         for index, item in enumerate(product_data, start=1):
-            product, _ = Product.objects.get_or_create(
+            product, _ = Product.objects.update_or_create(
                 name=item["name"],
                 defaults={
                     "description": item["description"],
                     "price": item["price"],
                     "discount_price": item["discount_price"],
+                    "category": categories[item["category"]],
                     "collection": collection,
                     "frame_shape": shapes[item["shape"]],
                     "frame_material": materials[item["material"]],

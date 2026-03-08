@@ -2,6 +2,7 @@
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    CategoryViewSet,
     CollectionViewSet,
     FrameMaterialViewSet,
     FrameShapeViewSet,
@@ -12,6 +13,7 @@ from .views import (
 router = DefaultRouter()
 router.register("products", ProductViewSet, basename="product")
 router.register("collections", CollectionViewSet, basename="collection")
+router.register("categories", CategoryViewSet, basename="category")
 router.register("frame-shapes", FrameShapeViewSet, basename="frame-shape")
 router.register("frame-materials", FrameMaterialViewSet, basename="frame-material")
 

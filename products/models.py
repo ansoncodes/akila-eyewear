@@ -25,6 +25,13 @@ class Collection(models.Model):
         return self.name
 
 
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     class Gender(models.TextChoices):
         MEN = "Men", "Men"
@@ -35,6 +42,7 @@ class Product(models.Model):
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="products")
     collection = models.ForeignKey(Collection, on_delete=models.SET_NULL, null=True, related_name="products")
     frame_shape = models.ForeignKey(FrameShape, on_delete=models.SET_NULL, null=True, related_name="products")
     frame_material = models.ForeignKey(FrameMaterial, on_delete=models.SET_NULL, null=True, related_name="products")

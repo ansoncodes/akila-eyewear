@@ -1,6 +1,6 @@
 ﻿from rest_framework import serializers
 
-from .models import Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
+from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
 
 
 class FrameShapeSerializer(serializers.ModelSerializer):
@@ -19,6 +19,12 @@ class CollectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collection
         fields = ["id", "name", "description", "image", "is_active"]
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -57,6 +63,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "price",
             "discount_price",
+            "category",
             "collection",
             "frame_shape",
             "frame_material",
