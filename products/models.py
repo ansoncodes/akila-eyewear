@@ -64,6 +64,16 @@ class ProductImage(models.Model):
 
 
 class GlassesModel(models.Model):
+    class CalibrationStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUCCESS = "success", "Success"
+        FAILED = "failed", "Failed"
+
+    class CalibrationSource(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        AI = "ai", "AI"
+        FALLBACK = "fallback", "Fallback"
+
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name="glasses_model")
     glb_file_url = models.CharField(max_length=255)
     scale = models.FloatField(default=1.0)
@@ -73,6 +83,18 @@ class GlassesModel(models.Model):
     rotation_x = models.FloatField(default=0.0)
     rotation_y = models.FloatField(default=0.0)
     rotation_z = models.FloatField(default=0.0)
+    calibration_status = models.CharField(
+        max_length=20,
+        choices=CalibrationStatus.choices,
+        default=CalibrationStatus.PENDING,
+    )
+    calibration_source = models.CharField(
+        max_length=20,
+        choices=CalibrationSource.choices,
+        default=CalibrationSource.MANUAL,
+    )
+    calibration_error = models.TextField(blank=True)
+    last_calibrated_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

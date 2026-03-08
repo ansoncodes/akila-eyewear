@@ -2,7 +2,7 @@
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
-from accounts.permissions import IsCustomer, IsReviewOwnerOrReadOnly
+from accounts.permissions import IsCustomer
 
 from .models import Review
 from .serializers import ReviewSerializer
@@ -14,19 +14,26 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "delete"]
 
     def get_permissions(self):
-        action_permissions = {
-            "list": [permissions.AllowAny],
-            "create": [permissions.IsAuthenticated, IsCustomer],
-            "destroy": [permissions.IsAuthenticated, IsCustomer, IsReviewOwnerOrReadOnly],
-        }
-        classes = action_permissions.get(self.action, [permissions.IsAuthenticated])
-        return [permission() for permission in classes]
+        if self.action == "list":
+            return [permissions.AllowAny()]
+        if self.action == "create":
+            return [permissions.IsAuthenticated(), IsCustomer()]
+        if self.action == "destroy":
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         product_id = self.request.query_params.get("product")
-        if not product_id:
-            return Review.objects.none()
-        return self.queryset.filter(product_id=product_id)
+
+        if product_id:
+            return queryset.filter(product_id=product_id)
+
+        user = self.request.user
+        if user.is_authenticated and user.role == "admin":
+            return queryset
+
+        return queryset.none()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -41,3 +48,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
             )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        review = self.get_object()
+
+        if request.user.role != "admin" and review.user_id != request.user.id:
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+        review.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

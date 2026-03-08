@@ -120,3 +120,6 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:3000",
     cast=Csv(),
 )
+
+AI_CALIBRATOR_URL = config("AI_CALIBRATOR_URL", default="")
+AI_CALIBRATOR_API_KEY = config("AI_CALIBRATOR_API_KEY", default="")

@@ -7,7 +7,6 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsCustomer
 from cart.models import Cart
 from notifications.models import Notification
 
@@ -69,6 +68,29 @@ class OrderViewSet(
         output_serializer = self.get_serializer(order)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["patch"], url_path="status")
+    def update_status(self, request, pk=None):
+        if request.user.role != "admin":
+            return Response({"detail": "Only admins can update order status."}, status=status.HTTP_403_FORBIDDEN)
+
+        order = self.get_object()
+        next_status = request.data.get("status")
+        valid_statuses = {choice[0] for choice in Order.Status.choices}
+
+        if next_status not in valid_statuses:
+            return Response({"detail": "Invalid status value."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = next_status
+        order.save(update_fields=["status"])
+
+        self._notify(
+            order.user,
+            "Order Status Updated",
+            f"Your order #{order.id} status changed to {order.status}.",
+        )
+
+        return Response(self.get_serializer(order).data)
+
     def _get_user_cart(self, user):
         return Cart.objects.filter(user=user).prefetch_related("items__product").first()
 
@@ -95,15 +117,24 @@ class OrderViewSet(
 
 
 class PaymentViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsCustomer]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        queryset = Payment.objects.select_related("order", "order__user")
+        if request.user.role != "admin":
+            queryset = queryset.filter(order__user=request.user)
+        return Response(PaymentSerializer(queryset, many=True).data)
 
     def retrieve(self, request, order_id=None):
-        payment = self._get_user_payment(request.user, order_id)
+        payment = self._get_user_payment(request, order_id)
         return Response(PaymentSerializer(payment).data)
 
     @action(detail=False, methods=["post"], url_path=r"pay/(?P<order_id>[^/.]+)")
     def pay(self, request, order_id=None):
-        payment = self._get_user_payment(request.user, order_id)
+        payment = self._get_user_payment(request, order_id)
+
+        if request.user.role != "admin" and payment.order.user_id != request.user.id:
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
 
         if payment.status == Payment.Status.PAID:
             return Response(PaymentSerializer(payment).data)
@@ -116,12 +147,15 @@ class PaymentViewSet(viewsets.ViewSet):
         payment.order.save(update_fields=["status"])
 
         Notification.objects.create(
-            user=request.user,
+            user=payment.order.user,
             title="Payment Successful",
             message=f"Payment received for order #{payment.order.id}. Your order is now confirmed.",
         )
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
 
-    def _get_user_payment(self, user, order_id):
-        return get_object_or_404(Payment.objects.select_related("order"), order_id=order_id, order__user=user)
+    def _get_user_payment(self, request, order_id):
+        queryset = Payment.objects.select_related("order", "order__user")
+        if request.user.role == "admin":
+            return get_object_or_404(queryset, order_id=order_id)
+        return get_object_or_404(queryset, order_id=order_id, order__user=request.user)

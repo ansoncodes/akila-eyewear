@@ -1,24 +1,31 @@
 ﻿from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
-from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product
+from accounts.permissions import IsAdminOrReadOnly
+from .models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
 from .serializers import (
+    CalibrationBulkSerializer,
     CategorySerializer,
     CollectionSerializer,
     FrameMaterialSerializer,
     FrameShapeSerializer,
     GlassesModelSerializer,
+    ProductImageSerializer,
     ProductSerializer,
 )
+from .services.ai_calibration import apply_calibration, auto_calibrate_glasses_model
 
 User = get_user_model()
 
 
-class CollectionViewSet(viewsets.ReadOnlyModelViewSet):
+class CollectionViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
         queryset = Collection.objects.all()
@@ -29,6 +36,24 @@ class CollectionViewSet(viewsets.ReadOnlyModelViewSet):
     def _is_admin_user(self):
         user = self.request.user
         return bool(user and user.is_authenticated and user.role == User.Role.ADMIN)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+
+class FrameShapeViewSet(viewsets.ModelViewSet):
+    queryset = FrameShape.objects.all()
+    serializer_class = FrameShapeSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+
+class FrameMaterialViewSet(viewsets.ModelViewSet):
+    queryset = FrameMaterial.objects.all()
+    serializer_class = FrameMaterialSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -95,7 +120,19 @@ class ProductViewSet(viewsets.ModelViewSet):
             raise ValidationError({field_name: "Invalid number."}) from exc
 
 
-class GlassesModelViewSet(viewsets.ReadOnlyModelViewSet):
+class ProductImageViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductImageSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        queryset = ProductImage.objects.select_related("product").all()
+        product_id = self.request.query_params.get("product")
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        return queryset
+
+
+class GlassesModelByProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = GlassesModel.objects.select_related("product")
     serializer_class = GlassesModelSerializer
     permission_classes = [permissions.AllowAny]
@@ -103,19 +140,30 @@ class GlassesModelViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "product_id"
 
 
-class FrameShapeViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = FrameShape.objects.all()
-    serializer_class = FrameShapeSerializer
-    permission_classes = [permissions.AllowAny]
+class GlassesModelAdminViewSet(viewsets.ModelViewSet):
+    queryset = GlassesModel.objects.select_related("product", "product__category", "product__frame_shape")
+    serializer_class = GlassesModelSerializer
+    permission_classes = [permissions.IsAdminUser]
 
+    @action(detail=True, methods=["post"], url_path="run-calibration")
+    def run_calibration(self, request, pk=None):
+        glasses_model = self.get_object()
+        result = auto_calibrate_glasses_model(glasses_model)
+        updated = apply_calibration(glasses_model, result)
+        return Response(self.get_serializer(updated).data)
 
-class FrameMaterialViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = FrameMaterial.objects.all()
-    serializer_class = FrameMaterialSerializer
-    permission_classes = [permissions.AllowAny]
+    @action(detail=False, methods=["post"], url_path="run-calibration-bulk")
+    def run_calibration_bulk(self, request):
+        input_serializer = CalibrationBulkSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
 
+        ids = input_serializer.validated_data["ids"]
+        queryset = self.get_queryset().filter(id__in=ids)
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    permission_classes = [permissions.AllowAny]
+        results = []
+        for glasses_model in queryset:
+            result = auto_calibrate_glasses_model(glasses_model)
+            updated = apply_calibration(glasses_model, result)
+            results.append(self.get_serializer(updated).data)
+
+        return Response(results, status=status.HTTP_200_OK)
