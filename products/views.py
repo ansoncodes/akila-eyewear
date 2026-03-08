@@ -1,5 +1,6 @@
 ﻿from decimal import Decimal, InvalidOperation
 
+from django.contrib.auth import get_user_model
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import ValidationError
 
@@ -13,15 +14,21 @@ from .serializers import (
     ProductSerializer,
 )
 
+User = get_user_model()
+
 
 class CollectionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
         queryset = Collection.objects.all()
-        if not (self.request.user.is_authenticated and self.request.user.is_staff):
+        if not self._is_admin_user():
             queryset = queryset.filter(is_active=True)
         return queryset
+
+    def _is_admin_user(self):
+        user = self.request.user
+        return bool(user and user.is_authenticated and user.role == User.Role.ADMIN)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -37,38 +44,55 @@ class ProductViewSet(viewsets.ModelViewSet):
             "category", "collection", "frame_shape", "frame_material", "glasses_model"
         ).prefetch_related("images")
 
-        if not (self.request.user.is_authenticated and self.request.user.is_staff):
+        if not self._is_admin_user():
             queryset = queryset.filter(is_active=True)
 
-        category_id = self.request.query_params.get("category")
-        frame_shape_id = self.request.query_params.get("frame_shape")
-        collection_id = self.request.query_params.get("collection")
-        gender = self.request.query_params.get("gender")
-        min_price = self.request.query_params.get("min_price")
-        max_price = self.request.query_params.get("max_price")
+        queryset = self._apply_basic_filters(queryset)
+        queryset = self._apply_price_filters(queryset)
+        return queryset
 
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-        if frame_shape_id:
-            queryset = queryset.filter(frame_shape_id=frame_shape_id)
-        if collection_id:
-            queryset = queryset.filter(collection_id=collection_id)
+    def _is_admin_user(self):
+        user = self.request.user
+        return bool(user and user.is_authenticated and user.role == User.Role.ADMIN)
+
+    def _apply_basic_filters(self, queryset):
+        filters = {
+            "category": "category_id",
+            "frame_shape": "frame_shape_id",
+            "collection": "collection_id",
+        }
+
+        for query_param, field_name in filters.items():
+            value = self.request.query_params.get(query_param)
+            if value:
+                queryset = queryset.filter(**{field_name: value})
+
+        gender = self.request.query_params.get("gender")
         if gender:
             queryset = queryset.filter(gender__iexact=gender)
 
-        if min_price:
-            try:
-                queryset = queryset.filter(price__gte=Decimal(min_price))
-            except InvalidOperation as exc:
-                raise ValidationError({"min_price": "Invalid number."}) from exc
+        return queryset
 
-        if max_price:
-            try:
-                queryset = queryset.filter(price__lte=Decimal(max_price))
-            except InvalidOperation as exc:
-                raise ValidationError({"max_price": "Invalid number."}) from exc
+    def _apply_price_filters(self, queryset):
+        min_price = self._parse_decimal_param("min_price")
+        max_price = self._parse_decimal_param("max_price")
+
+        if min_price is not None:
+            queryset = queryset.filter(price__gte=min_price)
+        if max_price is not None:
+            queryset = queryset.filter(price__lte=max_price)
 
         return queryset
+
+    def _parse_decimal_param(self, field_name):
+        value = self.request.query_params.get(field_name)
+        if not value:
+            return None
+
+        try:
+            return Decimal(value)
+        except InvalidOperation as exc:
+            raise ValidationError({field_name: "Invalid number."}) from exc
 
 
 class GlassesModelViewSet(viewsets.ReadOnlyModelViewSet):

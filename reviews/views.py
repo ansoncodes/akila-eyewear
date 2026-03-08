@@ -14,26 +14,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "delete"]
 
     def get_permissions(self):
-        if self.action == "list":
-            return [permissions.AllowAny()]
-        if self.action == "create":
-            return [permissions.IsAuthenticated(), IsCustomer()]
-        if self.action == "destroy":
-            return [permissions.IsAuthenticated(), IsCustomer(), IsReviewOwnerOrReadOnly()]
-        return [permissions.IsAuthenticated()]
+        action_permissions = {
+            "list": [permissions.AllowAny],
+            "create": [permissions.IsAuthenticated, IsCustomer],
+            "destroy": [permissions.IsAuthenticated, IsCustomer, IsReviewOwnerOrReadOnly],
+        }
+        classes = action_permissions.get(self.action, [permissions.IsAuthenticated])
+        return [permission() for permission in classes]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
         product_id = self.request.query_params.get("product")
-        if product_id:
-            queryset = queryset.filter(product_id=product_id)
-        else:
-            queryset = queryset.none()
-        return queryset
+        if not product_id:
+            return Review.objects.none()
+        return self.queryset.filter(product_id=product_id)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         try:
             self.perform_create(serializer)
         except IntegrityError:
@@ -41,5 +39,5 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 {"detail": "You have already reviewed this product."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

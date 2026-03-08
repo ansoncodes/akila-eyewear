@@ -16,20 +16,24 @@ class UserManager(BaseUserManager):
         return user
 
     def create_user(self, email, password=None, **extra_fields):
+        role_choices = self.model.Role
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        extra_fields.setdefault("role", User.Role.CUSTOMER)
+        extra_fields.setdefault("role", role_choices.CUSTOMER)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password, **extra_fields):
+        role_choices = self.model.Role
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("role", User.Role.ADMIN)
+        extra_fields.setdefault("role", role_choices.ADMIN)
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
+        if extra_fields.get("role") != role_choices.ADMIN:
+            raise ValueError("Superuser must have role=admin.")
 
         return self._create_user(email, password, **extra_fields)
 

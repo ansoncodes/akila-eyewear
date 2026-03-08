@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from accounts.permissions import IsCustomer
 from cart.models import Cart
+from notifications.models import Notification
 
 from .models import Order, OrderItem, Payment, ShippingAddress
 from .serializers import CreateOrderSerializer, OrderSerializer, PaymentSerializer
@@ -25,8 +26,10 @@ class OrderViewSet(
 
     def get_queryset(self):
         queryset = Order.objects.select_related("user", "shipping_address", "payment").prefetch_related("items__product")
+
         if self.request.user.role == "admin":
             return queryset.order_by("-created_at")
+
         return queryset.filter(user=self.request.user).order_by("-created_at")
 
     @transaction.atomic
@@ -34,64 +37,73 @@ class OrderViewSet(
         if request.user.role != "customer":
             return Response({"detail": "Only customers can place orders."}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = CreateOrderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        input_serializer = CreateOrderSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
 
-        cart = Cart.objects.filter(user=request.user).prefetch_related("items__product").first()
-        if not cart or not cart.items.exists():
+        cart = self._get_user_cart(request.user)
+        if cart is None or not cart.items.exists():
             return Response({"detail": "Your cart is empty."}, status=status.HTTP_400_BAD_REQUEST)
 
-        total_amount = Decimal("0.00")
-        order = Order.objects.create(user=request.user, status=Order.Status.PENDING, total_amount=0)
+        order, total_amount = self._create_order_with_items(request.user, cart)
 
-        for item in cart.items.all():
-            price = item.product.discount_price or item.product.price
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity,
-                price_at_purchase=price,
-            )
-            total_amount += price * item.quantity
-
-        order.total_amount = total_amount
-        order.save(update_fields=["total_amount"])
-
-        ShippingAddress.objects.create(order=order, **serializer.validated_data["shipping_address"])
+        ShippingAddress.objects.create(
+            order=order,
+            **input_serializer.validated_data["shipping_address"],
+        )
 
         Payment.objects.create(
             order=order,
             amount=total_amount,
             status=Payment.Status.PENDING,
-            payment_method=serializer.validated_data["payment_method"],
+            payment_method=input_serializer.validated_data["payment_method"],
             transaction_id=None,
         )
 
+        self._notify(
+            request.user,
+            "Order Placed",
+            f"Your order #{order.id} has been placed and is pending payment.",
+        )
+
         cart.items.all().delete()
-        output = self.get_serializer(order)
-        return Response(output.data, status=status.HTTP_201_CREATED)
+        output_serializer = self.get_serializer(order)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    def _get_user_cart(self, user):
+        return Cart.objects.filter(user=user).prefetch_related("items__product").first()
+
+    def _create_order_with_items(self, user, cart):
+        total_amount = Decimal("0.00")
+        order = Order.objects.create(user=user, status=Order.Status.PENDING, total_amount=0)
+
+        for cart_item in cart.items.all():
+            item_price = cart_item.product.discount_price or cart_item.product.price
+            OrderItem.objects.create(
+                order=order,
+                product=cart_item.product,
+                quantity=cart_item.quantity,
+                price_at_purchase=item_price,
+            )
+            total_amount += item_price * cart_item.quantity
+
+        order.total_amount = total_amount
+        order.save(update_fields=["total_amount"])
+        return order, total_amount
+
+    def _notify(self, user, title, message):
+        Notification.objects.create(user=user, title=title, message=message)
 
 
 class PaymentViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
 
-    def _get_payment(self, request, order_id):
-        payment = get_object_or_404(Payment.objects.select_related("order__user"), order_id=order_id)
-        if payment.order.user_id != request.user.id:
-            return None
-        return payment
-
     def retrieve(self, request, order_id=None):
-        payment = self._get_payment(request, order_id)
-        if payment is None:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        payment = self._get_user_payment(request.user, order_id)
         return Response(PaymentSerializer(payment).data)
 
     @action(detail=False, methods=["post"], url_path=r"pay/(?P<order_id>[^/.]+)")
     def pay(self, request, order_id=None):
-        payment = self._get_payment(request, order_id)
-        if payment is None:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        payment = self._get_user_payment(request.user, order_id)
 
         if payment.status == Payment.Status.PAID:
             return Response(PaymentSerializer(payment).data)
@@ -100,8 +112,16 @@ class PaymentViewSet(viewsets.ViewSet):
         payment.transaction_id = str(uuid4())
         payment.save(update_fields=["status", "transaction_id"])
 
-        order = payment.order
-        order.status = Order.Status.CONFIRMED
-        order.save(update_fields=["status"])
+        payment.order.status = Order.Status.CONFIRMED
+        payment.order.save(update_fields=["status"])
+
+        Notification.objects.create(
+            user=request.user,
+            title="Payment Successful",
+            message=f"Payment received for order #{payment.order.id}. Your order is now confirmed.",
+        )
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
+
+    def _get_user_payment(self, user, order_id):
+        return get_object_or_404(Payment.objects.select_related("order"), order_id=order_id, order__user=user)

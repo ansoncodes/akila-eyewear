@@ -7,30 +7,26 @@ from accounts.permissions import IsCustomer
 from products.models import Product
 
 from .models import Cart, CartItem
-from .serializers import (
-    AddCartItemSerializer,
-    CartSerializer,
-    UpdateCartItemSerializer,
-)
+from .serializers import AddCartItemSerializer, CartSerializer, UpdateCartItemSerializer
 
 
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
 
-    def _get_cart(self, user):
-        cart, _ = Cart.objects.get_or_create(user=user)
-        return cart
-
     def list(self, request):
         cart = self._get_cart(request.user)
-        return Response(CartSerializer(cart).data)
+        return Response(self._serialize_cart(cart))
 
     @action(detail=False, methods=["post"], url_path="add")
     def add(self, request):
         serializer = AddCartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        product = get_object_or_404(Product, id=serializer.validated_data["product_id"], is_active=True)
+        product = get_object_or_404(
+            Product,
+            id=serializer.validated_data["product_id"],
+            is_active=True,
+        )
         quantity = serializer.validated_data["quantity"]
 
         cart = self._get_cart(request.user)
@@ -39,11 +35,12 @@ class CartViewSet(viewsets.ViewSet):
             product=product,
             defaults={"quantity": quantity},
         )
+
         if not created:
             item.quantity += quantity
             item.save(update_fields=["quantity"])
 
-        return Response(CartSerializer(cart).data, status=status.HTTP_201_CREATED)
+        return Response(self._serialize_cart(cart), status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["patch"], url_path=r"update/(?P<item_id>[^/.]+)")
     def update_item(self, request, item_id=None):
@@ -55,7 +52,7 @@ class CartViewSet(viewsets.ViewSet):
         item.quantity = serializer.validated_data["quantity"]
         item.save(update_fields=["quantity"])
 
-        return Response(CartSerializer(cart).data)
+        return Response(self._serialize_cart(cart))
 
     @action(detail=False, methods=["delete"], url_path=r"remove/(?P<item_id>[^/.]+)")
     def remove_item(self, request, item_id=None):
@@ -63,4 +60,11 @@ class CartViewSet(viewsets.ViewSet):
         item = get_object_or_404(CartItem, id=item_id, cart=cart)
         item.delete()
 
-        return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+        return Response(self._serialize_cart(cart), status=status.HTTP_200_OK)
+
+    def _get_cart(self, user):
+        cart, _ = Cart.objects.get_or_create(user=user)
+        return cart
+
+    def _serialize_cart(self, cart):
+        return CartSerializer(cart).data
