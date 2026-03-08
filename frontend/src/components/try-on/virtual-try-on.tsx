@@ -73,7 +73,7 @@ const FIT = {
   xFactor: 1,
   yFactor: 1,
   minScale: 1.1,
-  maxScale: 3.6,
+  maxScale: 3.9,
   poseSmoothing: 0.2,
   positionSmoothing: 0.24,
   rotationSmoothing: 0.18,
@@ -82,7 +82,7 @@ const FIT = {
   baselineSmoothing: 0.016,
   frontalYawThreshold: 0.22,
   frontalRollThreshold: 0.28,
-  distanceScaleStrength: 1.3,
+  distanceScaleStrength: 1.34,
   distanceScaleMin: 0.7,
   distanceScaleMax: 1.9,
   yawDepthFactor: 0.34,
@@ -90,8 +90,8 @@ const FIT = {
   yawTuckXFactor: 0.07,
   yawTuckZFactor: 0.12,
   modelTargetWidth: 0.3,
-  templeScaleFactor: 9.2,
-  globalScaleBoost: 1.28,
+  templeScaleFactor: 9.6,
+  globalScaleBoost: 1.34,
   eyeToFaceWidthFactor: 3.1,
   proximityReferenceWidth: 0.18,
   depthFaceCompensation: 0.06,
@@ -457,15 +457,27 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
       );
       const depthRaw = FIT.baseDepth + calibrationZ - Math.abs(yawRaw) * FIT.yawDepthFactor + depthFromFaceSize;
 
+      const faceCoverageBoost = clamp(
+        Math.max(smoothedSideDistance, smoothedCheekDistance) /
+          Math.max(smoothedTempleDistance, 1e-4),
+        1,
+        1.24
+      );
+      const faceWidthForScale = Math.max(
+        compensatedTempleDistance,
+        smoothedSideDistance * 0.98,
+        smoothedCheekDistance
+      );
       const baselineScale =
         baselineTempleDistance *
         FIT.templeScaleFactor *
         calibrationScale *
         modelWrapCompensation *
-        FIT.globalScaleBoost;
+        FIT.globalScaleBoost *
+        faceCoverageBoost;
       let scaleRaw = clamp(baselineScale * distanceScaleMultiplier, FIT.minScale, FIT.maxScale);
       const minimumFaceWrapScale = clamp(
-        compensatedTempleDistance *
+        faceWidthForScale *
           FIT.templeScaleFactor *
           calibrationScale *
           modelWrapCompensation *
