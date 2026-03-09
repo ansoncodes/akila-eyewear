@@ -26,12 +26,13 @@ async function refreshAccessToken() {
   }
 
   try {
-    const response = await axios.post<{ access: string }>(`${API_BASE_URL}/auth/refresh/`, {
+    const response = await axios.post<{ access: string; refresh?: string }>(`${API_BASE_URL}/auth/refresh/`, {
       refresh: refreshToken,
     });
 
     const nextAccess = response.data.access;
-    setTokens({ accessToken: nextAccess, refreshToken });
+    const nextRefresh = response.data.refresh ?? refreshToken;
+    setTokens({ accessToken: nextAccess, refreshToken: nextRefresh });
     return nextAccess;
   } catch {
     clearAuth();

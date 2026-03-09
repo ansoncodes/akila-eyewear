@@ -30,6 +30,9 @@ export const authApi = {
     const { data } = await api.post<LoginResponse>("/auth/login/", payload);
     return data;
   },
+  logout: async (refreshToken: string) => {
+    await api.post("/auth/logout/", { refresh: refreshToken });
+  },
   me: async () => {
     const { data } = await api.get<User>("/auth/me/");
     return data;
