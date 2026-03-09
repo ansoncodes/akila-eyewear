@@ -13,16 +13,6 @@ interface VirtualTryOnProps {
 
 type Landmark = { x: number; y: number; z: number };
 
-interface DebugMetrics {
-  templeDistance: number;
-  baselineTempleDistance: number;
-  scaleRatio: number;
-  scale: number;
-  yaw: number;
-  holdFrames: number;
-  tracking: "tracking" | "frozen";
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -104,23 +94,12 @@ const FIT = {
   occluderDepthFactor: 0.42,
   occluderYOffset: 0.008,
   occluderZOffset: -0.035,
-  debugUpdateMs: 80,
 };
 
 export default function VirtualTryOn({ model }: VirtualTryOnProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [debugEnabled, setDebugEnabled] = useState(false);
-  const [debugMetrics, setDebugMetrics] = useState<DebugMetrics | null>(null);
-  const debugEnabledRef = useRef(debugEnabled);
-
-  useEffect(() => {
-    debugEnabledRef.current = debugEnabled;
-    if (!debugEnabled) {
-      setDebugMetrics(null);
-    }
-  }, [debugEnabled]);
 
   useEffect(() => {
     if (!model?.glb_file_url) return;
@@ -152,7 +131,6 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
     let lastVideoTime = -1;
     let missingFrames = 0;
     let confidenceHoldFrames = 0;
-    let lastDebugAt = 0;
     let hasStablePose = false;
 
     let stableXNorm = 0;
@@ -246,13 +224,6 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
       confidenceHoldFrames = Math.max(confidenceHoldFrames, frames);
     }
 
-    function updateDebug(now: number, partial: DebugMetrics) {
-      if (!debugEnabledRef.current) return;
-      if (now - lastDebugAt < FIT.debugUpdateMs) return;
-      lastDebugAt = now;
-      setDebugMetrics(partial);
-    }
-
     function resetTrackingState() {
       hasStablePose = false;
       smoothedTempleDistance = 0;
@@ -264,7 +235,7 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
       confidenceHoldFrames = 0;
     }
 
-    function applyLandmarks(landmarks: Landmark[], now: number) {
+    function applyLandmarks(landmarks: Landmark[]) {
       if (!glassesPivot) return;
 
       const leftEye = landmarks[33];
@@ -372,15 +343,6 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
         if (jump < 0.76 || jump > 1.28 || yawJump > 0.45 || rollJump > 0.5) {
           freezePose(FIT.confidenceHoldFrames);
           missingFrames += 1;
-          updateDebug(now, {
-            templeDistance: smoothedTempleDistance,
-            baselineTempleDistance: baselineTempleDistance || smoothedTempleDistance,
-            scaleRatio: 1,
-            scale: stableScale,
-            yaw: stableYaw,
-            holdFrames: confidenceHoldFrames,
-            tracking: "frozen",
-          });
           return;
         }
       }
@@ -574,15 +536,6 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
       glassesPivot.visible = true;
       missingFrames = 0;
 
-      updateDebug(now, {
-        templeDistance: smoothedTempleDistance,
-        baselineTempleDistance,
-        scaleRatio: distanceScaleRatio,
-        scale: stableScale,
-        yaw: stableYaw,
-        holdFrames: confidenceHoldFrames,
-        tracking: confidenceHoldFrames > 0 ? "frozen" : "tracking",
-      });
     }
 
     function renderLoop() {
@@ -598,19 +551,8 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
           if (landmarks && landmarks.length > 0) {
             if (confidenceHoldFrames > 0) {
               confidenceHoldFrames -= 1;
-              updateDebug(performance.now(), {
-                templeDistance: smoothedTempleDistance,
-                baselineTempleDistance: baselineTempleDistance || smoothedTempleDistance,
-                scaleRatio: baselineTempleDistance
-                  ? smoothedTempleDistance / Math.max(baselineTempleDistance, 1e-4)
-                  : 1,
-                scale: stableScale,
-                yaw: stableYaw,
-                holdFrames: confidenceHoldFrames,
-                tracking: "frozen",
-              });
             } else {
-              applyLandmarks(landmarks, performance.now());
+              applyLandmarks(landmarks);
             }
           } else {
             missingFrames += 1;
@@ -790,24 +732,6 @@ export default function VirtualTryOn({ model }: VirtualTryOnProps) {
   return (
     <div className="space-y-3">
       <div className="relative aspect-video min-h-[320px] overflow-hidden rounded-3xl border border-[#eadccf] bg-[#f7efe7]">
-        <button
-          type="button"
-          onClick={() => setDebugEnabled((prev) => !prev)}
-          className="absolute right-3 top-3 z-20 rounded-md bg-[#fff8f1]/90 px-2 py-1 text-[11px] font-medium text-[#6f5e54]"
-        >
-          {debugEnabled ? "Hide Debug" : "Show Debug"}
-        </button>
-        {debugEnabled && debugMetrics ? (
-          <div className="absolute left-3 top-3 z-20 rounded-md bg-[#2f2621]/80 px-2 py-1 font-mono text-[11px] text-[#d9f8d6]">
-            <div>state: {debugMetrics.tracking}</div>
-            <div>hold: {debugMetrics.holdFrames}</div>
-            <div>temple: {debugMetrics.templeDistance.toFixed(4)}</div>
-            <div>baseline: {debugMetrics.baselineTempleDistance.toFixed(4)}</div>
-            <div>ratio: {debugMetrics.scaleRatio.toFixed(3)}</div>
-            <div>scale: {debugMetrics.scale.toFixed(3)}</div>
-            <div>yaw: {debugMetrics.yaw.toFixed(3)}</div>
-          </div>
-        ) : null}
         <video
           ref={videoRef}
           autoPlay

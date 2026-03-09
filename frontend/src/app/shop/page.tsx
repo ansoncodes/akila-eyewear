@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { Glasses } from "lucide-react";
 import { Inter, Playfair_Display } from "next/font/google";
+import { useSearchParams } from "next/navigation";
 
 import ProductCard from "@/components/products/product-card";
 import ProductFilters from "@/components/products/product-filters";
@@ -41,6 +42,8 @@ const cardVariants: Variants = {
 };
 
 export default function ShopPage() {
+  const searchParams = useSearchParams();
+  const appliedCollectionParamRef = useRef<string | null>(null);
   const [filters, setFilters] = useState<{
     search?: string;
     category?: string;
@@ -79,6 +82,40 @@ export default function ShopPage() {
     queryKey: queryKeys.collections,
     queryFn: productsApi.collections,
   });
+
+  useEffect(() => {
+    const collectionParam = searchParams.get("collection");
+
+    if (!collectionParam) {
+      appliedCollectionParamRef.current = null;
+      return;
+    }
+
+    if (appliedCollectionParamRef.current === collectionParam) {
+      return;
+    }
+
+    const collections = collectionsQuery.data ?? [];
+    if (!collections.length) {
+      return;
+    }
+
+    const trimmed = collectionParam.trim();
+    const matchedById = /^\d+$/.test(trimmed) ? collections.find((item) => item.id === Number(trimmed)) : null;
+    const matchedByName =
+      matchedById ??
+      collections.find((item) => item.name.toLowerCase() === trimmed.toLowerCase());
+
+    if (matchedByName) {
+      setFilters((current) =>
+        current.collection === String(matchedByName.id)
+          ? current
+          : { ...current, collection: String(matchedByName.id) }
+      );
+    }
+
+    appliedCollectionParamRef.current = collectionParam;
+  }, [searchParams, collectionsQuery.data]);
 
   const frameShapesQuery = useQuery({
     queryKey: queryKeys.frameShapes,

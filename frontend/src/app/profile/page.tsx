@@ -38,12 +38,29 @@ const emptyForm: UserProfilePayload = {
   country: "",
 };
 
+const profileFields: (keyof UserProfilePayload)[] = [
+  "email",
+  "first_name",
+  "last_name",
+  "phone",
+  "address_line1",
+  "address_line2",
+  "city",
+  "state",
+  "pincode",
+  "country",
+];
+
 export default function ProfilePage() {
   const canRender = useRequireAuth();
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const [form, setForm] = useState<UserProfilePayload>(emptyForm);
+  const [originalForm, setOriginalForm] = useState<UserProfilePayload>(emptyForm);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
+  const [retypePassword, setRetypePassword] = useState("");
 
   const meQuery = useQuery({
     queryKey: queryKeys.me,
@@ -54,7 +71,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!meQuery.data) return;
 
-    setForm({
+    const hydratedForm: UserProfilePayload = {
       email: meQuery.data.email ?? "",
       first_name: meQuery.data.first_name ?? "",
       last_name: meQuery.data.last_name ?? "",
@@ -65,13 +82,28 @@ export default function ProfilePage() {
       state: meQuery.data.state ?? "",
       pincode: meQuery.data.pincode ?? "",
       country: meQuery.data.country ?? "",
-    });
+    };
+
+    setForm(hydratedForm);
+    setOriginalForm(hydratedForm);
   }, [meQuery.data]);
 
   const updateMutation = useMutation({
     mutationFn: (payload: UserProfilePayload) => authApi.updateProfile(payload),
     onSuccess: (updatedUser) => {
       setUser(updatedUser);
+      setOriginalForm({
+        email: updatedUser.email ?? "",
+        first_name: updatedUser.first_name ?? "",
+        last_name: updatedUser.last_name ?? "",
+        phone: updatedUser.phone ?? "",
+        address_line1: updatedUser.address_line1 ?? "",
+        address_line2: updatedUser.address_line2 ?? "",
+        city: updatedUser.city ?? "",
+        state: updatedUser.state ?? "",
+        pincode: updatedUser.pincode ?? "",
+        country: updatedUser.country ?? "",
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
       toast.success("Profile updated");
     },
@@ -98,6 +130,33 @@ export default function ProfilePage() {
       router.replace("/register");
     },
     onError: () => toast.error("Could not delete account"),
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: () =>
+      authApi.changePassword({
+        current_password: currentPassword,
+        new_password: nextPassword,
+        retype_password: retypePassword,
+      }),
+    onSuccess: () => {
+      toast.success("Password updated");
+      setCurrentPassword("");
+      setNextPassword("");
+      setRetypePassword("");
+    },
+    onError: (error: unknown) => {
+      const data = (error as { response?: { data?: Record<string, string[] | string> } })?.response?.data;
+      if (data && typeof data === "object") {
+        const [field, messages] = Object.entries(data)[0] ?? [];
+        const firstMessage = Array.isArray(messages) ? messages[0] : messages;
+        if (field && firstMessage) {
+          toast.error(`${field}: ${firstMessage}`);
+          return;
+        }
+      }
+      toast.error("Could not update password");
+    },
   });
 
   if (!canRender) {
@@ -129,7 +188,10 @@ export default function ProfilePage() {
     );
   }
 
-  const isBusy = updateMutation.isPending || deleteMutation.isPending;
+  const isBusy = updateMutation.isPending || deleteMutation.isPending || passwordMutation.isPending;
+  const passwordsMatch = nextPassword === retypePassword;
+  const canUpdatePassword = Boolean(currentPassword && nextPassword && retypePassword && passwordsMatch);
+  const hasProfileChanges = profileFields.some((field) => (form[field] ?? "") !== (originalForm[field] ?? ""));
 
   function setField(field: keyof UserProfilePayload, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -137,6 +199,7 @@ export default function ProfilePage() {
 
   function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!hasProfileChanges) return;
     updateMutation.mutate(form);
   }
 
@@ -144,6 +207,14 @@ export default function ProfilePage() {
     const confirmed = window.confirm("Delete your account permanently?");
     if (!confirmed) return;
     deleteMutation.mutate();
+  }
+
+  function onChangePassword() {
+    if (!passwordsMatch) {
+      toast.error("New password and retype password must match");
+      return;
+    }
+    passwordMutation.mutate();
   }
 
   return (
@@ -274,7 +345,7 @@ export default function ProfilePage() {
 
             <button
               type="submit"
-              disabled={isBusy}
+              disabled={isBusy || !hasProfileChanges}
               className="w-full rounded-full bg-[#C4714F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b66342] disabled:cursor-not-allowed disabled:opacity-70"
             >
               Save Changes
@@ -288,6 +359,47 @@ export default function ProfilePage() {
             >
               Clear Fields
             </button>
+
+            <div className="my-2 h-px bg-[#efe2d7]" />
+
+            <div className="space-y-3">
+              <h4 className="text-base text-[#2d251f] [font-family:var(--font-profile-serif)]">Update Password</h4>
+
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Current password"
+                className="w-full rounded-xl border border-[#e7d8cc] bg-[#fffdfb] px-3 py-2.5 text-sm outline-none transition focus:border-[#C4714F]"
+              />
+              <input
+                type="password"
+                value={nextPassword}
+                onChange={(event) => setNextPassword(event.target.value)}
+                placeholder="New password"
+                className="w-full rounded-xl border border-[#e7d8cc] bg-[#fffdfb] px-3 py-2.5 text-sm outline-none transition focus:border-[#C4714F]"
+              />
+              <input
+                type="password"
+                value={retypePassword}
+                onChange={(event) => setRetypePassword(event.target.value)}
+                placeholder="Retype new password"
+                className="w-full rounded-xl border border-[#e7d8cc] bg-[#fffdfb] px-3 py-2.5 text-sm outline-none transition focus:border-[#C4714F]"
+              />
+
+              {!passwordsMatch && retypePassword ? (
+                <p className="text-xs text-[#bf5a5a]">Passwords do not match.</p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={onChangePassword}
+                disabled={!canUpdatePassword || isBusy}
+                className="w-full rounded-full bg-[#C4714F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b66342] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {passwordMutation.isPending ? "Updating..." : "Update Password"}
+              </button>
+            </div>
 
             <button
               type="button"

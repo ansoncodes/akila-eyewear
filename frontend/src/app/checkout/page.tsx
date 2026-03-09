@@ -279,13 +279,7 @@ export default function CheckoutPage() {
                   disabled={payMutation.isPending}
                   className="w-full rounded-full bg-[#C4714F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b66342] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {payMutation.isPending ? "Processing..." : "Pay Now (Fake)"}
-                </button>
-                <button
-                  onClick={() => router.push("/orders")}
-                  className="w-full rounded-full border border-[#d8c8bb] px-4 py-2.5 text-sm font-semibold text-[#5a4c43] transition hover:border-[#C4714F] hover:text-[#C4714F]"
-                >
-                  Skip for now and view orders
+                  {payMutation.isPending ? "Processing..." : "Pay Now"}
                 </button>
               </div>
             ) : null}

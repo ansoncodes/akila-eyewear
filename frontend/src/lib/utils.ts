@@ -1,4 +1,4 @@
-﻿import { CURRENCY } from "@/lib/constants";
+import { CURRENCY, CURRENCY_LOCALE } from "@/lib/constants";
 
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -6,7 +6,7 @@ export function cn(...classes: Array<string | false | null | undefined>) {
 
 export function formatPrice(value: string | number) {
   const num = typeof value === "string" ? Number.parseFloat(value) : value;
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(CURRENCY_LOCALE, {
     style: "currency",
     currency: CURRENCY,
     maximumFractionDigits: 2,
@@ -29,3 +29,4 @@ export function formatDate(input: string) {
     minute: "2-digit",
   });
 }
+

@@ -51,6 +51,181 @@ npm run build
 - `NEXT_PUBLIC_DJANGO_BASE_URL` example `http://127.0.0.1:8000`
 - `NEXT_PUBLIC_AI_CALIBRATOR_URL` optional display/config status in admin settings
 
+## Virtual Try-On Internals
+
+This section documents the current try-on pipeline used in:
+
+- `src/components/try-on/virtual-try-on.tsx`
+- `scripts/normalize-glb-pivots.mjs`
+
+### GLB normalization (offline)
+
+Run:
+
+```bash
+npm run normalize:pivots
+```
+
+Script behavior for each `public/models/*.glb`:
+
+1. Removes existing top-level `__pivot__` nodes (if present) to avoid nested pivot stacking.
+2. Computes scene bounds and center.
+3. Creates a new top-level pivot node named `__pivot__`.
+4. Reparents all scene children under that pivot.
+5. Re-centers model at origin with nose-bridge lift:
+   - `x = -centerX`
+   - `y = -centerY + sizeY * 0.14`
+   - `z = -centerZ`
+6. Uniform-scales pivot so model width (`sizeX`) targets `0.3` world units.
+7. Emits warnings when width is not dominant axis or depth is almost equal to width.
+
+Key constants:
+
+- `TARGET_WIDTH = 0.3`
+- `WIDTH_TOLERANCE = 0.01`
+- `NOSE_BRIDGE_LIFT = 0.14`
+
+### Runtime model normalization (safety layer)
+
+Even after offline normalization, the runtime loader normalizes again to keep assets consistent:
+
+1. Builds bounding box from loaded GLB scene.
+2. Re-centers model root to bounds center.
+3. Applies `+size.y * 0.14` vertical lift.
+4. Scales model to target width (`FIT.modelTargetWidth = 0.3`).
+
+This protects against missed normalization in newly added model files.
+
+### Face tracking engine
+
+Face tracking uses MediaPipe Tasks Vision `FaceLandmarker` in VIDEO mode with:
+
+- `numFaces: 1`
+- `minFaceDetectionConfidence: 0.6`
+- `minFacePresenceConfidence: 0.6`
+- `minTrackingConfidence: 0.6`
+
+Camera stream target:
+
+- User-facing camera
+- Ideal `1280x720`
+
+### Landmarks and metrics used
+
+Landmark indices used in fitting:
+
+- Eyes: `33`, `263`
+- Nose bridge and tip: `168`, `1`
+- Temples: `234`, `454`
+- Face side points: `127`, `356`
+- Cheeks: `93`, `323`
+- Forehead/chin: `10`, `152`
+
+Per-frame measurements:
+
+- `eyeDistance`
+- `templeDistance`
+- `sideDistance`
+- `cheekDistance`
+- `faceHeightDistance`
+
+Frames are rejected/frozen when:
+
+- Any required landmark is missing
+- Any metric is invalid or outside guard ranges
+- Left temple appears to the right of right temple (invalid geometry)
+- Sudden jumps are detected (distance jump, yaw jump, roll jump)
+
+### Pose estimation
+
+The try-on pose is computed from blended signals:
+
+- `rollRaw = atan2(eyeDy, eyeDx)`
+- `yawRaw` from weighted combination of:
+  - nose horizontal offset from eye center
+  - eye depth difference
+  - temple depth difference
+- `pitchRaw` from weighted combination of:
+  - nose vertical offset from eye center
+  - nose depth offset from eye center
+
+### Smoothing and stability controls
+
+The pipeline smooths both measurements and transforms:
+
+- Measurement smoothing for distances
+- Pose smoothing (`x`, `y`, `depth`, `yaw`, `pitch`, `roll`)
+- Transform smoothing:
+  - position lerp
+  - quaternion slerp
+  - scale lerp
+
+Stability controls:
+
+- A short hold window (`confidenceHoldFrames`) freezes updates after unstable frames.
+- Landmarks can be missing for up to `lostTrackingFrames`; beyond that the glasses/occluder are hidden and state resets.
+- Baseline temple width updates only when face is near frontal (small yaw and roll).
+
+### Scale/depth/placement logic
+
+Glasses size is dynamic and based on tracked face geometry, not static scale only.
+
+Scale combines:
+
+- Baseline temple distance
+- Current compensated face width
+- Yaw compensation (`1 / cos(|yaw|)`, clamped)
+- Distance ratio multiplier
+- Face coverage boost
+- Model wrap compensation from model width/depth ratio
+- Optional manual calibration scale (when calibration source is manual)
+
+Depth combines:
+
+- Base depth (`FIT.baseDepth`)
+- Optional manual Z calibration
+- Yaw tuck depth correction
+- Face-size-based depth compensation
+
+Anchor placement:
+
+- Uses weighted eye center + temple center + nose bridge.
+- Converts normalized video coordinates to NDC with aspect-aware letterboxing compensation.
+- Unprojects to world space and places model at computed depth plane.
+
+### Calibration usage rules
+
+Backend `GlassesModel` calibration values are source-aware:
+
+- Manual source:
+  - manual `scale`, `position_y`, `position_z` are applied (clamped)
+  - manual rotations are applied (clamped)
+- Non-manual source:
+  - uses conservative defaults for scale and Y/Z offsets
+- `position_x` is clamped and applied in both cases
+
+### Occlusion model
+
+A depth-only spherical occluder is used for realism:
+
+- Color write disabled, depth write enabled.
+- Scale and position are driven by tracked face width/height/depth estimates.
+- Occluder follows the same smoothed pose transform as glasses.
+
+This allows parts of the frame to be naturally hidden by facial geometry.
+
+### Debug overlay metrics
+
+Try-on debug mode can be toggled in UI and currently shows:
+
+- tracking state (`tracking` or `frozen`)
+- hold frames
+- temple distance
+- baseline temple distance
+- scale ratio
+- resolved scale
+- yaw
+
 ## Routes
 
 ### Storefront

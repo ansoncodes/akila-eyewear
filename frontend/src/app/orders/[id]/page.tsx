@@ -61,6 +61,21 @@ export default function OrderDetailPage() {
     onError: () => toast.error("Payment failed"),
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: () => orderApi.cancel(orderId),
+    onSuccess: () => {
+      toast.success("Order cancelled");
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+    },
+    onError: (error: unknown) => {
+      const detail =
+        (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not cancel order";
+      toast.error(detail);
+    },
+  });
+
   if (!canRender) return null;
 
   const order = orderQuery.data;
@@ -87,6 +102,9 @@ export default function OrderDetailPage() {
 
   const isCancelled = order.status === "Cancelled";
   const stepIndex = getStepIndex(order.status);
+  const paymentStatus = paymentQuery.data?.status ?? order.payment.status;
+  const canPayNow = order.status === "Pending" && paymentStatus !== "Paid";
+  const canCancelOrder = order.status === "Pending" || order.status === "Confirmed";
 
   return (
     <div
@@ -157,19 +175,29 @@ export default function OrderDetailPage() {
           <section className="rounded-3xl bg-white p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
             <h2 className="text-2xl text-[#2d251f] [font-family:var(--font-order-detail-serif)]">Payment</h2>
             <div className="mt-4 space-y-1.5 text-sm text-[#5f5048]">
-              <p>Status: {paymentQuery.data?.status ?? "Pending"}</p>
+              <p>Status: {paymentStatus}</p>
               <p>Method: {paymentQuery.data?.payment_method ?? order.payment.payment_method}</p>
               <p>Amount: {formatPrice(order.total_amount)}</p>
               <p>Transaction: {paymentQuery.data?.transaction_id || order.payment.transaction_id || "Not paid"}</p>
             </div>
 
-            {order.status === "Pending" ? (
+            {canPayNow ? (
               <button
                 onClick={() => payMutation.mutate()}
-                disabled={payMutation.isPending}
+                disabled={payMutation.isPending || paymentStatus === "Paid"}
                 className="mt-4 rounded-full bg-[#C4714F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b66342] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {payMutation.isPending ? "Processing..." : "Pay Now"}
+              </button>
+            ) : null}
+
+            {canCancelOrder ? (
+              <button
+                onClick={() => cancelMutation.mutate()}
+                disabled={cancelMutation.isPending || payMutation.isPending}
+                className="mt-3 rounded-full border border-[#d7c5b8] px-4 py-2.5 text-sm font-semibold text-[#5a4a40] transition hover:border-[#C4714F] hover:text-[#C4714F] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {cancelMutation.isPending ? "Cancelling..." : "Cancel Order"}
               </button>
             ) : null}
           </section>

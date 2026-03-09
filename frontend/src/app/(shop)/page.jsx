@@ -41,7 +41,6 @@ const productPlaceholders = [
 
 const footerLinks = [
   { label: "Shop", href: "/shop" },
-  { label: "Try On", href: "/try-on/1" },
   { label: "Wishlist", href: "/wishlist" },
   { label: "Profile", href: "/profile" },
 ];
@@ -53,16 +52,17 @@ const baseReveal = {
   transition: { duration: 0.65, ease: "easeOut" },
 };
 
-function CollectionCard({ image, name, className, loading, imageClassName = "object-cover" }) {
+function CollectionCard({ image, name, href, className, loading, imageClassName = "object-cover" }) {
   return (
     <motion.article
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={`group relative overflow-hidden rounded-[2rem] shadow-[0_18px_40px_rgba(79,49,32,0.12)] ${className}`}
     >
+      <Link href={href} aria-label={`Explore ${name}`} className="absolute inset-0 z-20" />
       <Image src={image} alt={name} fill sizes="(max-width: 1024px) 100vw, 50vw" className={imageClassName} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-6">
+      <div className="absolute inset-x-0 bottom-0 z-10 p-6">
         <p
           className={`text-3xl text-white [font-family:var(--font-home-serif)] transition-opacity duration-300 ${
             loading ? "opacity-60" : "opacity-100"
@@ -103,6 +103,7 @@ export default function HomePage() {
     return collectionArtwork.map((image, index) => ({
       image,
       name: names[index] || collectionFallbackNames[index],
+      href: { pathname: "/shop", query: { collection: names[index] || collectionFallbackNames[index] } },
     }));
   }, [collections]);
 
@@ -140,12 +141,6 @@ export default function HomePage() {
               className="rounded-full bg-[#C4714F] px-7 py-3 text-sm font-semibold text-[#fff8f2] shadow-[0_12px_28px_rgba(196,113,79,0.35)] transition hover:-translate-y-0.5 hover:bg-[#b96543]"
             >
               Shop Now
-            </Link>
-            <Link
-              href="/try-on/1"
-              className="rounded-full border border-[#d8b19f] px-7 py-3 text-sm font-semibold text-[#6f4f41] transition hover:-translate-y-0.5 hover:bg-[#f4e8de]"
-            >
-              Try On Live
             </Link>
           </div>
         </motion.div>
@@ -188,6 +183,7 @@ export default function HomePage() {
           <CollectionCard
             image={collectionCards[0].image}
             name={collectionCards[0].name}
+            href={collectionCards[0].href}
             loading={collectionsLoading}
             className="h-[520px]"
           />
@@ -196,12 +192,14 @@ export default function HomePage() {
             <CollectionCard
               image={collectionCards[1].image}
               name={collectionCards[1].name}
+              href={collectionCards[1].href}
               loading={collectionsLoading}
               className="h-[247px]"
             />
             <CollectionCard
               image={collectionCards[2].image}
               name={collectionCards[2].name}
+              href={collectionCards[2].href}
               loading={collectionsLoading}
               className="h-[247px]"
               imageClassName="object-cover object-[center_18%]"

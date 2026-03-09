@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Inter, Playfair_Display } from "next/font/google";
@@ -29,6 +29,7 @@ const sans = Inter({
 
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const productId = Number(params.id);
   const isValidProductId = Number.isFinite(productId) && productId > 0;
   const user = useAuthStore((state) => state.user);
@@ -50,6 +51,24 @@ export default function ProductDetailPage() {
     enabled: isValidProductId,
   });
 
+  const collectionsQuery = useQuery({
+    queryKey: queryKeys.collections,
+    queryFn: productsApi.collections,
+    staleTime: 60_000,
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: productsApi.categories,
+    staleTime: 60_000,
+  });
+
+  const frameShapesQuery = useQuery({
+    queryKey: queryKeys.frameShapes,
+    queryFn: productsApi.frameShapes,
+    staleTime: 60_000,
+  });
+
   const addCartMutation = useMutation({
     mutationFn: () => cartApi.add(productId, 1),
     onSuccess: () => {
@@ -66,6 +85,15 @@ export default function ProductDetailPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wishlist });
     },
     onError: () => toast.error("Login as customer to add wishlist items"),
+  });
+
+  const buyNowMutation = useMutation({
+    mutationFn: () => cartApi.add(productId, 1),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cart });
+      router.push("/checkout");
+    },
+    onError: () => toast.error("Login as customer to continue"),
   });
 
   const createReviewMutation = useMutation({
@@ -105,6 +133,24 @@ export default function ProductDetailPage() {
     }
     return product.images.find((item) => item.is_primary)?.image || product.images[0]?.image || "";
   }, [productQuery.data, activeImageId]);
+
+  const collectionName = useMemo(() => {
+    const collectionId = productQuery.data?.collection;
+    if (!collectionId) return "-";
+    return collectionsQuery.data?.find((collection) => collection.id === collectionId)?.name ?? `#${collectionId}`;
+  }, [productQuery.data?.collection, collectionsQuery.data]);
+
+  const categoryName = useMemo(() => {
+    const categoryId = productQuery.data?.category;
+    if (!categoryId) return "-";
+    return categoriesQuery.data?.find((category) => category.id === categoryId)?.name ?? `#${categoryId}`;
+  }, [productQuery.data?.category, categoriesQuery.data]);
+
+  const frameShapeName = useMemo(() => {
+    const frameShapeId = productQuery.data?.frame_shape;
+    if (!frameShapeId) return "-";
+    return frameShapesQuery.data?.find((shape) => shape.id === frameShapeId)?.name ?? `#${frameShapeId}`;
+  }, [productQuery.data?.frame_shape, frameShapesQuery.data]);
 
   if (productQuery.isLoading) {
     return (
@@ -193,40 +239,48 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-[#f7e7de] px-3 py-1 text-[#C4714F]">Category #{product.category ?? "-"}</span>
-              <span className="rounded-full bg-[#f3ece4] px-3 py-1 text-[#7c6c63]">Collection #{product.collection ?? "-"}</span>
-              <span className="rounded-full bg-[#f3ece4] px-3 py-1 text-[#7c6c63]">Shape #{product.frame_shape ?? "-"}</span>
-              <span className="rounded-full bg-[#f3ece4] px-3 py-1 text-[#7c6c63]">Material #{product.frame_material ?? "-"}</span>
+              <span className="rounded-full bg-[#f7e7de] px-3 py-1 text-[#C4714F]">{categoryName} Category</span>
+              <span className="rounded-full bg-[#f3ece4] px-3 py-1 text-[#7c6c63]">{collectionName} Collection</span>
+              <span className="rounded-full bg-[#f3ece4] px-3 py-1 text-[#7c6c63]">{frameShapeName} Shape</span>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-3">
               <button
-                onClick={() => addCartMutation.mutate()}
-                disabled={addCartMutation.isPending}
-                className="rounded-full bg-[#C4714F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#b66342] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={() => buyNowMutation.mutate()}
+                disabled={buyNowMutation.isPending}
+                className="block w-full rounded-full bg-[#2f2621] px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_12px_28px_rgba(47,38,33,0.25)] transition hover:-translate-y-0.5 hover:bg-[#1f1916] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Add to Cart
-              </button>
-              <button
-                onClick={() => addWishlistMutation.mutate()}
-                disabled={addWishlistMutation.isPending}
-                className="rounded-full border border-[#d8c8bb] px-4 py-2.5 text-sm font-semibold text-[#5a4c43] transition hover:border-[#C4714F] hover:text-[#C4714F] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Add to Wishlist
+                {buyNowMutation.isPending ? "Redirecting..." : "Buy Now"}
               </button>
               <Link
                 href={`/try-on/${product.id}`}
-                className="rounded-full border border-[#d8c8bb] px-4 py-2.5 text-center text-sm font-semibold text-[#5a4c43] transition hover:border-[#C4714F] hover:text-[#C4714F] sm:col-span-2"
+                className="block rounded-full border border-[#d8b19f] bg-[#fff9f4] px-4 py-3 text-center text-sm font-semibold text-[#6f4f41] transition hover:-translate-y-0.5 hover:border-[#C4714F] hover:text-[#C4714F]"
               >
-                Try On Live
+                Try On Your Face
               </Link>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  onClick={() => addCartMutation.mutate()}
+                  disabled={addCartMutation.isPending}
+                  className="rounded-full border border-[#d8c8bb] bg-[#fffaf5] px-4 py-2.5 text-sm font-semibold text-[#5a4c43] transition hover:border-[#C4714F] hover:text-[#C4714F] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Add to Cart
+                </button>
+                <button
+                  onClick={() => addWishlistMutation.mutate()}
+                  disabled={addWishlistMutation.isPending}
+                  className="rounded-full border border-[#d8c8bb] bg-[#fffaf5] px-4 py-2.5 text-sm font-semibold text-[#5a4c43] transition hover:border-[#C4714F] hover:text-[#C4714F] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Add to Wishlist
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-4xl text-[#241d18] [font-family:var(--font-product-serif)]">3D Preview</h2>
-          <ProductModelViewer model={product.glasses_model} />
+          <ProductModelViewer model={product.glasses_model} productId={product.id} />
         </section>
 
         <section className="space-y-5">
@@ -234,19 +288,22 @@ export default function ProductDetailPage() {
 
           {isLoggedIn ? (
             <div className="space-y-3 rounded-3xl bg-white p-5 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-[#6f6158]">Rating</label>
-                <select
-                  value={rating}
-                  onChange={(event) => setRating(Number(event.target.value))}
-                  className="rounded-full border border-[#e0d2c5] bg-[#fffdfb] px-3 py-2 text-sm text-[#2f2621] outline-none"
-                >
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-2.5">
+                <label className="text-sm font-normal leading-none text-[#6f6158]">Rating</label>
+                <div className="relative w-fit">
+                  <select
+                    value={rating}
+                    onChange={(event) => setRating(Number(event.target.value))}
+                    className="h-8 w-[58px] min-w-0 appearance-none rounded-full border border-[#e0d2c5] bg-[#fffdfb] px-2 pr-5 text-sm font-normal leading-none text-[#2f2621] outline-none"
+                  >
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rotate-45 border-b-[1.5px] border-r-[1.5px] border-[#4a3f38]" />
+                </div>
               </div>
               <textarea
                 value={comment}
