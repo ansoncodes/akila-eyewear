@@ -30,7 +30,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "is_primary"]
+        fields = ["id", "product", "image", "is_primary"]
 
 
 class GlassesModelSerializer(serializers.ModelSerializer):
@@ -47,8 +47,26 @@ class GlassesModelSerializer(serializers.ModelSerializer):
             "rotation_x",
             "rotation_y",
             "rotation_z",
+            "calibration_status",
+            "calibration_source",
+            "calibration_error",
+            "last_calibrated_at",
             "created_at",
         ]
+        read_only_fields = [
+            "calibration_status",
+            "calibration_source",
+            "calibration_error",
+            "last_calibrated_at",
+            "created_at",
+        ]
+
+
+class CalibrationBulkSerializer(serializers.Serializer):
+    ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+    )
 
 
 class ProductSerializer(serializers.ModelSerializer):

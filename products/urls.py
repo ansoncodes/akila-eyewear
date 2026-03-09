@@ -6,7 +6,9 @@ from .views import (
     CollectionViewSet,
     FrameMaterialViewSet,
     FrameShapeViewSet,
-    GlassesModelViewSet,
+    GlassesModelAdminViewSet,
+    GlassesModelByProductViewSet,
+    ProductImageViewSet,
     ProductViewSet,
 )
 
@@ -16,11 +18,13 @@ router.register("collections", CollectionViewSet, basename="collection")
 router.register("categories", CategoryViewSet, basename="category")
 router.register("frame-shapes", FrameShapeViewSet, basename="frame-shape")
 router.register("frame-materials", FrameMaterialViewSet, basename="frame-material")
+router.register("product-images", ProductImageViewSet, basename="product-image")
+router.register("glasses-models", GlassesModelAdminViewSet, basename="glasses-model")
 
 urlpatterns = [
     path(
         "products/<int:product_id>/glasses-model/",
-        GlassesModelViewSet.as_view({"get": "retrieve"}),
+        GlassesModelByProductViewSet.as_view({"get": "retrieve"}),
         name="glasses-model-by-product",
     ),
     path("", include(router.urls)),

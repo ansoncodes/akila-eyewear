@@ -27,9 +27,20 @@ class ShippingAddressSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    user_id = serializers.IntegerField(source="order.user_id", read_only=True)
+
     class Meta:
         model = Payment
-        fields = ["amount", "status", "payment_method", "transaction_id", "created_at"]
+        fields = [
+            "order_id",
+            "user_id",
+            "amount",
+            "status",
+            "payment_method",
+            "transaction_id",
+            "created_at",
+        ]
 
 
 class OrderSerializer(serializers.ModelSerializer):

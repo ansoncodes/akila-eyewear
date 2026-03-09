@@ -10,6 +10,7 @@ payment_view = PaymentViewSet.as_view
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("payments/", payment_view({"get": "list"}), name="payments-list"),
     path("payments/pay/<int:order_id>/", payment_view({"post": "pay"}), name="payment-pay"),
     path("payments/<int:order_id>/", payment_view({"get": "retrieve"}), name="payment-detail"),
 ]
