@@ -3,11 +3,14 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { authApi } from "@/lib/api/services";
+import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/store/auth-store";
 import { useAdminUiStore } from "@/store/admin-ui-store";
 
 export default function AdminTopbar() {
   const router = useRouter();
+  const refreshToken = useAuthStore((state) => state.refreshToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const setGlobalSearch = useAdminUiStore((state) => state.setGlobalSearch);
 
@@ -15,8 +18,16 @@ export default function AdminTopbar() {
     setGlobalSearch("");
   }, [setGlobalSearch]);
 
-  function logout() {
+  async function logout() {
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // Ignore network/logout revoke errors and clear local auth regardless.
+      }
+    }
     clearAuth();
+    queryClient.clear();
     router.push("/admin/login");
   }
 

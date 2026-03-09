@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { authApi } from "@/lib/api/services";
+import { queryClient } from "@/lib/query-client";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -18,10 +20,19 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  function logout() {
+  async function logout() {
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // Ignore network/logout revoke errors and clear local auth regardless.
+      }
+    }
     clearAuth();
+    queryClient.clear();
     router.push("/login");
   }
 

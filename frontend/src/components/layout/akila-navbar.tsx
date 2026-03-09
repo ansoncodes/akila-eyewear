@@ -8,7 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 
-import { cartApi, productsApi } from "@/lib/api/services";
+import { cartApi, productsApi, authApi } from "@/lib/api/services";
+import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/store/auth-store";
 import { imageUrl } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ interface AkilaNavbarProps {
 export default function AkilaNavbar({ collectionsHref = "/#collections" }: AkilaNavbarProps) {
   const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
   const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const [scrolled, setScrolled] = useState(false);
@@ -126,8 +128,16 @@ export default function AkilaNavbar({ collectionsHref = "/#collections" }: Akila
 
   const iconClass = "rounded-full p-2 text-[#2f2823] transition hover:bg-[#f0e3d7]";
 
-  function logout() {
+  async function logout() {
+    if (refreshToken) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // Ignore network/logout revoke errors and clear local auth regardless.
+      }
+    }
     clearAuth();
+    queryClient.clear();
     setAccountOpen(false);
     router.push("/");
   }
