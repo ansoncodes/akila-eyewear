@@ -1,6 +1,7 @@
 ﻿from decimal import Decimal
 from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, permissions, status, viewsets
@@ -12,6 +13,8 @@ from notifications.models import Notification
 
 from .models import Order, OrderItem, Payment, ShippingAddress
 from .serializers import CreateOrderSerializer, OrderSerializer, PaymentSerializer
+
+User = get_user_model()
 
 
 class OrderViewSet(
@@ -63,6 +66,10 @@ class OrderViewSet(
             "Order Placed",
             f"Your order #{order.id} has been placed and is pending payment.",
         )
+        self._notify_admins(
+            "New Order Placed",
+            f"Order #{order.id} was placed by {request.user.email}.",
+        )
 
         cart.items.all().delete()
         output_serializer = self.get_serializer(order)
@@ -87,6 +94,41 @@ class OrderViewSet(
             order.user,
             "Order Status Updated",
             f"Your order #{order.id} status changed to {order.status}.",
+        )
+        if next_status in {Order.Status.CANCELLED, Order.Status.DELIVERED}:
+            self._notify_admins(
+                "Order Status Alert",
+                f"Order #{order.id} is now {next_status}.",
+            )
+
+        return Response(self.get_serializer(order).data)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        if request.user.role != "customer":
+            return Response({"detail": "Only customers can cancel orders."}, status=status.HTTP_403_FORBIDDEN)
+
+        order = self.get_object()
+        if order.status == Order.Status.CANCELLED:
+            return Response(self.get_serializer(order).data)
+
+        if order.status in {Order.Status.SHIPPED, Order.Status.DELIVERED}:
+            return Response(
+                {"detail": "This order can no longer be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=["status"])
+
+        self._notify(
+            order.user,
+            "Order Cancelled",
+            f"Your order #{order.id} has been cancelled.",
+        )
+        self._notify_admins(
+            "Order Status Alert",
+            f"Order #{order.id} is now {Order.Status.CANCELLED}.",
         )
 
         return Response(self.get_serializer(order).data)
@@ -114,6 +156,12 @@ class OrderViewSet(
 
     def _notify(self, user, title, message):
         Notification.objects.create(user=user, title=title, message=message)
+
+    def _notify_admins(self, title, message):
+        admins = User.objects.filter(role=User.Role.ADMIN).only("id")
+        Notification.objects.bulk_create(
+            [Notification(user=admin, title=title, message=message) for admin in admins]
+        )
 
 
 class PaymentViewSet(viewsets.ViewSet):
@@ -143,13 +191,10 @@ class PaymentViewSet(viewsets.ViewSet):
         payment.transaction_id = str(uuid4())
         payment.save(update_fields=["status", "transaction_id"])
 
-        payment.order.status = Order.Status.CONFIRMED
-        payment.order.save(update_fields=["status"])
-
         Notification.objects.create(
             user=payment.order.user,
             title="Payment Successful",
-            message=f"Payment received for order #{payment.order.id}. Your order is now confirmed.",
+            message=f"Payment received for order #{payment.order.id}. Your order remains pending.",
         )
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)

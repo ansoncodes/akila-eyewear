@@ -17,8 +17,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.role == User.Role.ADMIN:
-            return queryset
         return queryset.filter(user=self.request.user)
 
     def get_permissions(self):

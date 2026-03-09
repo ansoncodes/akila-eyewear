@@ -8,6 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .serializers import (
     AdminCustomerDetailSerializer,
     AdminCustomerListSerializer,
+    ChangePasswordSerializer,
     LoginSerializer,
     ProfileUpdateSerializer,
     RegisterSerializer,
@@ -47,6 +48,19 @@ class MeView(APIView):
     def delete(self, request):
         request.user.delete()
         return Response(status=204)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        request.user.set_password(serializer.validated_data["new_password"])
+        request.user.save(update_fields=["password"])
+
+        return Response({"detail": "Password updated successfully."}, status=200)
 
 
 class AdminCustomerViewSet(viewsets.ReadOnlyModelViewSet):

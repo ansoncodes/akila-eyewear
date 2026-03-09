@@ -38,6 +38,10 @@ export const authApi = {
     const { data } = await api.patch<User>("/auth/me/", payload);
     return data;
   },
+  changePassword: async (payload: { current_password: string; new_password: string; retype_password: string }) => {
+    const { data } = await api.post<{ detail: string }>("/auth/change-password/", payload);
+    return data;
+  },
   deleteProfile: async () => {
     await api.delete("/auth/me/");
   },
@@ -122,6 +126,10 @@ export const orderApi = {
   },
   pay: async (orderId: number) => {
     const { data } = await api.post(`/payments/pay/${orderId}/`);
+    return data;
+  },
+  cancel: async (orderId: number) => {
+    const { data } = await api.post<Order>(`/orders/${orderId}/cancel/`);
     return data;
   },
   payment: async (orderId: number) => {

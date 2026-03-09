@@ -1,11 +1,15 @@
 ﻿from django.db import IntegrityError
+from django.contrib.auth import get_user_model
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
 from accounts.permissions import IsCustomer
+from notifications.models import Notification
 
 from .models import Review
 from .serializers import ReviewSerializer
+
+User = get_user_model()
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -47,6 +51,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        review = serializer.instance
+        self._notify_admins(
+            "New Product Review",
+            f"{request.user.email} reviewed product #{review.product_id} with {review.rating} stars.",
+        )
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
@@ -57,3 +67,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
         review.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _notify_admins(self, title, message):
+        admins = User.objects.filter(role=User.Role.ADMIN).only("id")
+        Notification.objects.bulk_create(
+            [Notification(user=admin, title=title, message=message) for admin in admins]
+        )
