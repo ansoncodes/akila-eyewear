@@ -1,22 +1,26 @@
 import { cn } from "@/lib/utils";
 
 const styles: Record<string, string> = {
-  pending: "bg-amber-500/20 text-amber-200",
-  success: "bg-emerald-500/20 text-emerald-200",
-  failed: "bg-rose-500/20 text-rose-200",
-  manual: "bg-slate-500/30 text-slate-100",
-  fallback: "bg-fuchsia-500/20 text-fuchsia-200",
-  paid: "bg-emerald-500/20 text-emerald-200",
-  confirmed: "bg-cyan-500/20 text-cyan-200",
-  shipped: "bg-indigo-500/20 text-indigo-200",
-  delivered: "bg-emerald-500/20 text-emerald-200",
-  cancelled: "bg-rose-500/20 text-rose-200",
+  pending: "bg-[#f7e7de] text-[#a76040]",
+  success: "bg-[#e9f5ee] text-[#2d7d55]",
+  failed: "bg-[#fce9e9] text-[#b34848]",
+  manual: "bg-[#f2ece5] text-[#6b594f]",
+  fallback: "bg-[#f2ece5] text-[#6b594f]",
+  paid: "bg-[#e9f5ee] text-[#2d7d55]",
+  confirmed: "bg-[#f2ece5] text-[#6b594f]",
+  shipped: "bg-[#f2ece5] text-[#6b594f]",
+  delivered: "bg-[#e9f5ee] text-[#2d7d55]",
+  cancelled: "bg-[#fce9e9] text-[#b34848]",
+  active: "bg-[#e9f5ee] text-[#2d7d55]",
+  inactive: "bg-[#f7e7de] text-[#a76040]",
+  read: "bg-[#e9f5ee] text-[#2d7d55]",
+  unread: "bg-[#f7e7de] text-[#a76040]",
 };
 
 export default function StatusBadge({ value }: { value: string }) {
   const key = value.toLowerCase();
   return (
-    <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", styles[key] ?? "bg-slate-700 text-slate-100")}>
+    <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", styles[key] ?? "bg-[#f2ece5] text-[#6b594f]")}>
       {value}
     </span>
   );

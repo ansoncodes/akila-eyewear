@@ -4,12 +4,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-import DataTable from "@/components/admin/data-table";
 import AdminErrorState from "@/components/admin/error-state";
-import FilterBar from "@/components/admin/filter-bar";
 import AdminLoadingState from "@/components/admin/loading-state";
 import AdminModal from "@/components/admin/modal";
-import AdminPageHeader from "@/components/admin/page-header";
 import { queryKeys } from "@/lib/api/query-keys";
 import { adminApi } from "@/lib/api/admin/services";
 import { queryClient } from "@/lib/query-client";
@@ -19,6 +16,14 @@ import type { AdminCollection } from "@/types/admin";
 import type { Category, FrameMaterial, FrameShape } from "@/types/api";
 
 type TabKey = "categories" | "collections" | "frame-shapes" | "frame-materials";
+
+const fieldClass =
+  "rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129] placeholder:text-[#a18f84] focus:border-[#d9b8a5] focus:outline-none focus:ring-2 focus:ring-[#edd6c8]";
+const checkboxRowClass = "flex items-center gap-2 rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#4f423a]";
+const warmPrimaryButtonClass =
+  "rounded-xl bg-[#C4714F] px-4 py-2 text-sm font-semibold text-[#fff8f2] shadow-[0_10px_24px_rgba(196,113,79,0.3)] hover:bg-[#b96543] disabled:opacity-60";
+const warmSoftButtonClass = "rounded-lg border border-[#ddc9bb] bg-white px-2.5 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]";
+const warmDangerButtonClass = "rounded-lg border border-[#f0cfcd] bg-[#fdf2f2] px-2.5 py-1 text-xs text-[#b34848] hover:bg-[#fae5e5]";
 
 export default function AdminCatalogPage() {
   const globalSearch = useAdminUiStore((state) => state.globalSearch);
@@ -47,21 +52,24 @@ export default function AdminCatalogPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <AdminPageHeader title="Catalog Meta" subtitle="Manage categories, collections, frame shapes, and materials." />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-4xl text-[#241d18] [font-family:var(--font-heading),serif]">Catalog Meta</h1>
+        <p className="mt-1 text-sm text-[#7b6f68]">Manage categories, collections, frame shapes, and materials.</p>
+      </div>
 
-      <FilterBar>
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-[#ece2d9] bg-white p-3 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
         <select
           value={tab}
           onChange={(event) => setTab(event.target.value as TabKey)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="categories">Categories</option>
           <option value="collections">Collections</option>
           <option value="frame-shapes">Frame Shapes</option>
           <option value="frame-materials">Frame Materials</option>
         </select>
-      </FilterBar>
+      </div>
 
       {tab === "categories" ? (
         <NamedEntityManager
@@ -168,48 +176,60 @@ function NamedEntityManager({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder={`Add ${title}`}
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={`w-full ${fieldClass}`}
         />
-        <button type="submit" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950">
+        <button type="submit" className={warmPrimaryButtonClass}>
           Add
         </button>
       </form>
 
-      <DataTable
-        columns={[
-          {
-            key: "name",
-            label: "Name",
-            render: (row) => <span>{row.name}</span>,
-          },
-          {
-            key: "actions",
-            label: "Actions",
-            render: (row) => (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditing({ id: row.id, name: row.name })}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(row.id)}
-                  className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
-                >
-                  Delete
-                </button>
-              </div>
-            ),
-          },
-        ]}
-        rows={rows}
-        rowKey={(row) => row.id}
-      />
+      <div className="overflow-hidden rounded-2xl border border-[#ece2d9] bg-white shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-left">
+            <thead className="bg-[#f7efe8]">
+              <tr>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">Name</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="px-4 py-10 text-center text-sm text-[#8a7c73]">
+                    No records found.
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => (
+                  <tr key={row.id} className="border-t border-[#efe3d9] align-top transition hover:bg-[#fcf8f4]">
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">{row.name}</td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditing({ id: row.id, name: row.name })}
+                          className={warmSoftButtonClass}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(row.id)}
+                          className={warmDangerButtonClass}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      <AdminModal open={Boolean(editing)} onClose={() => setEditing(null)} title={`Edit ${title}`}>
+      <AdminModal open={Boolean(editing)} onClose={() => setEditing(null)} title={`Edit ${title}`} tone="warm">
         <form
           className="space-y-3"
           onSubmit={(event) => {
@@ -225,9 +245,9 @@ function NamedEntityManager({
                 return { ...prev, name: event.target.value };
               })
             }
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={`w-full ${fieldClass}`}
           />
-          <button type="submit" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950">
+          <button type="submit" className={warmPrimaryButtonClass}>
             Save
           </button>
         </form>
@@ -312,22 +332,22 @@ function CollectionManager({ rows, globalSearch }: { rows: AdminCollection[]; gl
           value={form.name}
           onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
           placeholder="Collection name"
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
           required
         />
         <input
           value={form.description}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
           placeholder="Description"
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         />
         <input
           type="file"
           accept="image/*"
           onChange={(event) => setForm((prev) => ({ ...prev, image: event.target.files?.[0] ?? null }))}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         />
-        <label className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm">
+        <label className={checkboxRowClass}>
           <input
             type="checkbox"
             checked={form.is_active}
@@ -335,67 +355,84 @@ function CollectionManager({ rows, globalSearch }: { rows: AdminCollection[]; gl
           />
           Active
         </label>
-        <button type="submit" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950 sm:col-span-2">
+        <button type="submit" className={`${warmPrimaryButtonClass} sm:col-span-2`}>
           Add Collection
         </button>
       </form>
 
-      <DataTable
-        columns={[
-          {
-            key: "name",
-            label: "Name",
-            render: (row) => (
-              <div className="flex items-center gap-3">
-                {row.image ? <img src={imageUrl(row.image)} alt={row.name} className="h-10 w-16 rounded object-cover" /> : null}
-                <div>
-                  <p className="text-white">{row.name}</p>
-                  <p className="text-xs text-slate-400">{row.description || "No description"}</p>
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: "status",
-            label: "Status",
-            render: (row) => <span>{row.is_active ? "Active" : "Inactive"}</span>,
-          },
-          {
-            key: "actions",
-            label: "Actions",
-            render: (row) => (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditing(row);
-                    setEditingForm({
-                      name: row.name,
-                      description: row.description,
-                      is_active: row.is_active,
-                      image: null,
-                    });
-                  }}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(row.id)}
-                  className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
-                >
-                  Delete
-                </button>
-              </div>
-            ),
-          },
-        ]}
-        rows={filtered}
-        rowKey={(row) => row.id}
-      />
+      <div className="overflow-hidden rounded-2xl border border-[#ece2d9] bg-white shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead className="bg-[#f7efe8]">
+              <tr>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">Name</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">Status</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-10 text-center text-sm text-[#8a7c73]">
+                    No records found.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((row) => (
+                  <tr key={row.id} className="border-t border-[#efe3d9] align-top transition hover:bg-[#fcf8f4]">
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <div className="flex items-center gap-3">
+                        {row.image ? <img src={imageUrl(row.image)} alt={row.name} className="h-10 w-16 rounded object-cover" /> : null}
+                        <div>
+                          <p className="font-medium text-[#2f2621]">{row.name}</p>
+                          <p className="text-xs text-[#8a7c73]">{row.description || "No description"}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          row.is_active ? "bg-[#e9f5ee] text-[#2d7d55]" : "bg-[#f7e7de] text-[#a76040]"
+                        }`}
+                      >
+                        {row.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(row);
+                            setEditingForm({
+                              name: row.name,
+                              description: row.description,
+                              is_active: row.is_active,
+                              image: null,
+                            });
+                          }}
+                          className={warmSoftButtonClass}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(row.id)}
+                          className={warmDangerButtonClass}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      <AdminModal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit Collection">
+      <AdminModal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit Collection" tone="warm">
         <form
           className="space-y-3"
           onSubmit={(event) => {
@@ -406,21 +443,21 @@ function CollectionManager({ rows, globalSearch }: { rows: AdminCollection[]; gl
           <input
             value={editingForm.name}
             onChange={(event) => setEditingForm((prev) => ({ ...prev, name: event.target.value }))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={`w-full ${fieldClass}`}
           />
           <textarea
             value={editingForm.description}
             onChange={(event) => setEditingForm((prev) => ({ ...prev, description: event.target.value }))}
             rows={3}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={`w-full ${fieldClass}`}
           />
           <input
             type="file"
             accept="image/*"
             onChange={(event) => setEditingForm((prev) => ({ ...prev, image: event.target.files?.[0] ?? null }))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={`w-full ${fieldClass}`}
           />
-          <label className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm">
+          <label className={checkboxRowClass}>
             <input
               type="checkbox"
               checked={editingForm.is_active}
@@ -428,7 +465,7 @@ function CollectionManager({ rows, globalSearch }: { rows: AdminCollection[]; gl
             />
             Active
           </label>
-          <button type="submit" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950">
+          <button type="submit" className={warmPrimaryButtonClass}>
             Save Changes
           </button>
         </form>
@@ -436,3 +473,4 @@ function CollectionManager({ rows, globalSearch }: { rows: AdminCollection[]; gl
     </div>
   );
 }
+

@@ -5,13 +5,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-import DataTable from "@/components/admin/data-table";
 import AdminErrorState from "@/components/admin/error-state";
-import FilterBar from "@/components/admin/filter-bar";
 import AdminLoadingState from "@/components/admin/loading-state";
 import AdminModal from "@/components/admin/modal";
-import AdminPageHeader from "@/components/admin/page-header";
-import StatusBadge from "@/components/admin/status-badge";
 import { queryKeys } from "@/lib/api/query-keys";
 import { adminApi } from "@/lib/api/admin/services";
 import { queryClient } from "@/lib/query-client";
@@ -20,6 +16,18 @@ import { useAdminUiStore } from "@/store/admin-ui-store";
 import type { AdminOrder, AdminPayment } from "@/types/admin";
 
 const orderStatuses: AdminOrder["status"][] = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+
+const fieldClass =
+  "rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129] placeholder:text-[#a18f84] focus:border-[#d9b8a5] focus:outline-none focus:ring-2 focus:ring-[#edd6c8]";
+
+function warmStatusClass(value: string) {
+  const key = value.toLowerCase();
+  if (key === "pending") return "bg-[#f7e7de] text-[#a76040]";
+  if (key === "confirmed" || key === "shipped") return "bg-[#f2ece5] text-[#6b594f]";
+  if (key === "delivered" || key === "paid" || key === "success") return "bg-[#e9f5ee] text-[#2d7d55]";
+  if (key === "cancelled" || key === "failed") return "bg-[#fce9e9] text-[#b34848]";
+  return "bg-[#f2ece5] text-[#6b594f]";
+}
 
 export default function AdminOrdersPage() {
   const globalSearch = useAdminUiStore((state) => state.globalSearch);
@@ -91,13 +99,16 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Orders & Payments" subtitle="Track order lifecycle, shipping and payment records." />
+      <div>
+        <h1 className="text-4xl text-[#241d18] [font-family:var(--font-heading),serif]">Orders & Payments</h1>
+        <p className="mt-1 text-sm text-[#7b6f68]">Track order lifecycle, shipping and payment records.</p>
+      </div>
 
-      <FilterBar>
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-[#ece2d9] bg-white p-3 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="">All Order Statuses</option>
           {orderStatuses.map((status) => (
@@ -110,7 +121,7 @@ export default function AdminOrdersPage() {
         <select
           value={paymentFilter}
           onChange={(event) => setPaymentFilter(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="">All Payment Statuses</option>
           <option value="Pending">Pending</option>
@@ -122,157 +133,167 @@ export default function AdminOrdersPage() {
           type="date"
           value={dateFrom}
           onChange={(event) => setDateFrom(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         />
 
         <input
           type="date"
           value={dateTo}
           onChange={(event) => setDateTo(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-        />
-      </FilterBar>
-
-      <DataTable
-        columns={[
-          {
-            key: "order",
-            label: "Order",
-            render: (row) => (
-              <div>
-                <p className="text-white">#{row.id}</p>
-                <p className="text-xs text-slate-400">{formatDate(row.created_at)}</p>
-              </div>
-            ),
-          },
-          {
-            key: "customer",
-            label: "Customer",
-            render: (row) => <span>User #{row.user}</span>,
-          },
-          {
-            key: "total",
-            label: "Total",
-            render: (row) => <span>{formatPrice(row.total_amount)}</span>,
-          },
-          {
-            key: "payment",
-            label: "Payment",
-            render: (row) => <StatusBadge value={row.payment?.status ?? "Pending"} />,
-          },
-          {
-            key: "status",
-            label: "Status",
-            render: (row) => <StatusBadge value={row.status} />,
-          },
-          {
-            key: "update",
-            label: "Update",
-            render: (row) => (
-              <select
-                value={row.status}
-                onChange={(event) =>
-                  updateStatusMutation.mutate({
-                    id: row.id,
-                    status: event.target.value as AdminOrder["status"],
-                  })
-                }
-                className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs"
-              >
-                {orderStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            ),
-          },
-          {
-            key: "actions",
-            label: "Actions",
-            render: (row) => (
-              <Link href={`/admin/orders/${row.id}`} className="rounded-lg border border-slate-700 px-2 py-1 text-xs">
-                View Detail
-              </Link>
-            ),
-          },
-        ]}
-        rows={filteredOrders}
-        rowKey={(row) => row.id}
-        emptyLabel="No orders match current filters."
-      />
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-white">Payment Records</h2>
-        <DataTable
-          columns={[
-            {
-              key: "order",
-              label: "Order",
-              render: (row: AdminPayment) => <span>#{row.order_id}</span>,
-            },
-            {
-              key: "amount",
-              label: "Amount",
-              render: (row: AdminPayment) => <span>{formatPrice(row.amount)}</span>,
-            },
-            {
-              key: "method",
-              label: "Method",
-              render: (row: AdminPayment) => <span>{row.payment_method}</span>,
-            },
-            {
-              key: "status",
-              label: "Status",
-              render: (row: AdminPayment) => <StatusBadge value={row.status} />,
-            },
-            {
-              key: "created",
-              label: "Created",
-              render: (row: AdminPayment) => <span className="text-xs">{formatDate(row.created_at)}</span>,
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              render: (row: AdminPayment) => (
-                <button
-                  type="button"
-                  onClick={() => setSelectedPaymentOrderId(row.order_id ?? null)}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
-                >
-                  View Detail
-                </button>
-              ),
-            },
-          ]}
-          rows={filteredPayments}
-          rowKey={(row) => `${row.order_id}-${row.created_at}`}
-          emptyLabel="No payment records found."
+          className={fieldClass}
         />
       </div>
 
-      <AdminModal open={Boolean(selectedPaymentOrderId)} onClose={() => setSelectedPaymentOrderId(null)} title="Payment Detail">
+      <div className="overflow-hidden rounded-2xl border border-[#ece2d9] bg-white shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] border-collapse text-left">
+            <thead className="bg-[#f7efe8]">
+              <tr>
+                {["Order", "Customer", "Total", "Payment", "Status", "Update", "Actions"].map((label) => (
+                  <th key={label} className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#8a7c73]">
+                    No orders match current filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map((row) => (
+                  <tr key={row.id} className="border-t border-[#efe3d9] align-top transition hover:bg-[#fcf8f4]">
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <div>
+                        <p className="font-medium text-[#2f2621]">#{row.id}</p>
+                        <p className="text-xs text-[#8a7c73]">{formatDate(row.created_at)}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">User #{row.user}</td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">{formatPrice(row.total_amount)}</td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${warmStatusClass(row.payment?.status ?? "Pending")}`}>
+                        {row.payment?.status ?? "Pending"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${warmStatusClass(row.status)}`}>{row.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <select
+                        value={row.status}
+                        onChange={(event) =>
+                          updateStatusMutation.mutate({
+                            id: row.id,
+                            status: event.target.value as AdminOrder["status"],
+                          })
+                        }
+                        className="rounded-lg border border-[#e6d6c9] bg-white px-2 py-1 text-xs text-[#3d3129]"
+                      >
+                        {orderStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#3a312b]">
+                      <Link
+                        href={`/admin/orders/${row.id}`}
+                        className="rounded-lg border border-[#ddc9bb] bg-white px-2.5 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
+                      >
+                        View Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Payment Records</h2>
+        <div className="overflow-hidden rounded-2xl border border-[#ece2d9] bg-white shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[940px] border-collapse text-left">
+              <thead className="bg-[#f7efe8]">
+                <tr>
+                  {["Order", "Amount", "Method", "Status", "Created", "Actions"].map((label) => (
+                    <th key={label} className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#8a7c73]">
+                      No payment records found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPayments.map((row: AdminPayment) => (
+                    <tr key={`${row.order_id}-${row.created_at}`} className="border-t border-[#efe3d9] align-top transition hover:bg-[#fcf8f4]">
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">#{row.order_id}</td>
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">{formatPrice(row.amount)}</td>
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">{row.payment_method}</td>
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${warmStatusClass(row.status)}`}>{row.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">
+                        <span className="text-xs text-[#8a7c73]">{formatDate(row.created_at)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#3a312b]">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentOrderId(row.order_id ?? null)}
+                          className="rounded-lg border border-[#ddc9bb] bg-white px-2.5 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
+                        >
+                          View Detail
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <AdminModal
+        open={Boolean(selectedPaymentOrderId)}
+        onClose={() => setSelectedPaymentOrderId(null)}
+        title="Payment Detail"
+        tone="warm"
+      >
         {paymentDetailQuery.isLoading ? <AdminLoadingState label="Loading payment detail..." /> : null}
         {paymentDetailQuery.isError ? <AdminErrorState description="Unable to fetch payment detail." /> : null}
         {paymentDetailQuery.data ? (
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm text-[#3a312b]">
             <p>
-              <span className="text-slate-400">Order:</span> #{paymentDetailQuery.data.order_id}
+              <span className="text-[#8a7c73]">Order:</span> #{paymentDetailQuery.data.order_id}
             </p>
             <p>
-              <span className="text-slate-400">Amount:</span> {formatPrice(paymentDetailQuery.data.amount)}
+              <span className="text-[#8a7c73]">Amount:</span> {formatPrice(paymentDetailQuery.data.amount)}
             </p>
             <p>
-              <span className="text-slate-400">Status:</span> {paymentDetailQuery.data.status}
+              <span className="text-[#8a7c73]">Status:</span> {paymentDetailQuery.data.status}
             </p>
             <p>
-              <span className="text-slate-400">Method:</span> {paymentDetailQuery.data.payment_method}
+              <span className="text-[#8a7c73]">Method:</span> {paymentDetailQuery.data.payment_method}
             </p>
             <p>
-              <span className="text-slate-400">Transaction:</span> {paymentDetailQuery.data.transaction_id || "N/A"}
+              <span className="text-[#8a7c73]">Transaction:</span> {paymentDetailQuery.data.transaction_id || "N/A"}
             </p>
             <p>
-              <span className="text-slate-400">Created:</span> {formatDate(paymentDetailQuery.data.created_at)}
+              <span className="text-[#8a7c73]">Created:</span> {formatDate(paymentDetailQuery.data.created_at)}
             </p>
           </div>
         ) : null}
@@ -280,3 +301,4 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
+

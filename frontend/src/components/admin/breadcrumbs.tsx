@@ -14,7 +14,7 @@ export default function AdminBreadcrumbs() {
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments.length <= 1) {
-    return <p className="text-sm text-slate-400">Dashboard</p>;
+    return <p className="text-sm text-[#8a7c73]">Dashboard</p>;
   }
 
   const links = segments.slice(1).map((segment, index) => {
@@ -27,17 +27,17 @@ export default function AdminBreadcrumbs() {
   });
 
   return (
-    <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-      <Link href="/admin" className="hover:text-slate-200">
+    <nav className="flex flex-wrap items-center gap-2 text-sm text-[#8a7c73]">
+      <Link href="/admin" className="hover:text-[#4f423a]">
         Dashboard
       </Link>
       {links.map((item) => (
         <span key={item.href} className="flex items-center gap-2">
           <span>/</span>
           {item.isLast ? (
-            <span className="text-slate-200">{item.label}</span>
+            <span className="text-[#4f423a]">{item.label}</span>
           ) : (
-            <Link href={item.href} className="hover:text-slate-200">
+            <Link href={item.href} className="hover:text-[#4f423a]">
               {item.label}
             </Link>
           )}

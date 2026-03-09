@@ -111,7 +111,7 @@ export default function AdminNotificationsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <AdminPageHeader
         title="Notifications"
         subtitle="Send customer updates and monitor delivery/read status."
@@ -119,7 +119,7 @@ export default function AdminNotificationsPage() {
           <button
             type="button"
             onClick={() => markReadAllMutation.mutate()}
-            className="rounded-xl border border-slate-700 px-4 py-2 text-sm"
+            className="rounded-xl border border-[#ddc9bb] bg-white px-4 py-2 text-sm text-[#6b594f] hover:bg-[#f8eee7]"
           >
             Mark All Read
           </button>
@@ -134,7 +134,7 @@ export default function AdminNotificationsPage() {
       ) : null}
 
       <form
-        className="grid gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:grid-cols-2"
+        className="grid gap-3 rounded-2xl border border-[#ece2d9] bg-white p-4 shadow-[0_2px_16px_rgba(63,42,31,0.08)] sm:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
           createMutation.mutate();
@@ -145,34 +145,37 @@ export default function AdminNotificationsPage() {
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Notification title"
           required
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
         />
         <input
           value={userId}
           onChange={(event) => setUserId(event.target.value)}
           placeholder="User ID (if not broadcast)"
           disabled={broadcast}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm disabled:opacity-60"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129] disabled:bg-[#f7efe8] disabled:opacity-60"
         />
         <textarea
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Message"
           required
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm sm:col-span-2"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129] sm:col-span-2"
           rows={3}
         />
-        <label className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm">
+        <label className="flex items-center gap-2 rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#4f423a]">
           <input type="checkbox" checked={broadcast} onChange={(event) => setBroadcast(event.target.checked)} />
           Broadcast to customers
         </label>
-        <button type="submit" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950">
+        <button
+          type="submit"
+          className="rounded-xl bg-[#C4714F] px-4 py-2 text-sm font-semibold text-[#fff8f2] shadow-[0_10px_24px_rgba(196,113,79,0.3)] hover:bg-[#b96543]"
+        >
           Send Notification
         </button>
       </form>
 
       <FilterBar>
-        <p className="text-sm text-slate-400">Showing {filtered.length} notifications</p>
+        <p className="text-sm text-[#8a7c73]">Showing {filtered.length} notifications</p>
       </FilterBar>
 
       <DataTable
@@ -182,8 +185,8 @@ export default function AdminNotificationsPage() {
             label: "Title",
             render: (row) => (
               <div>
-                <p className="text-white">{row.title}</p>
-                <p className="text-xs text-slate-400">{row.user_email || `User #${row.user}`}</p>
+                <p className="font-medium text-[#2f2621]">{row.title}</p>
+                <p className="text-xs text-[#8a7c73]">{row.user_email || `User #${row.user}`}</p>
               </div>
             ),
           },
@@ -210,14 +213,14 @@ export default function AdminNotificationsPage() {
                 <button
                   type="button"
                   onClick={() => markReadMutation.mutate(row.id)}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[#ddc9bb] bg-white px-2 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
                 >
                   Mark Read
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteMutation.mutate(row.id)}
-                  className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
+                  className="rounded-lg border border-[#f0cfcd] bg-[#fdf2f2] px-2 py-1 text-xs text-[#b34848] hover:bg-[#fae5e5]"
                 >
                   Delete
                 </button>
@@ -232,3 +235,4 @@ export default function AdminNotificationsPage() {
     </div>
   );
 }
+

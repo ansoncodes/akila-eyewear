@@ -4,18 +4,13 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-import DataTable from "@/components/admin/data-table";
 import AdminErrorState from "@/components/admin/error-state";
-import FilterBar from "@/components/admin/filter-bar";
 import AdminLoadingState from "@/components/admin/loading-state";
 import AdminModal from "@/components/admin/modal";
-import AdminPageHeader from "@/components/admin/page-header";
-import StatusBadge from "@/components/admin/status-badge";
 import { queryKeys } from "@/lib/api/query-keys";
 import { adminApi } from "@/lib/api/admin/services";
 import { queryClient } from "@/lib/query-client";
-import { imageUrl } from "@/lib/utils";
-import { useAdminUiStore } from "@/store/admin-ui-store";
+import { formatPrice, imageUrl } from "@/lib/utils";
 import type { AdminProduct, AdminProductPayload, GlassesModelPayload } from "@/types/admin";
 
 interface ProductFormState {
@@ -60,6 +55,10 @@ const defaultForm: ProductFormState = {
   rotation_z: "0",
 };
 
+function warmStatusClass(isActive: boolean) {
+  return isActive ? "bg-[#e9f5ee] text-[#2d7d55]" : "bg-[#f7e7de] text-[#a76040]";
+}
+
 function toProductPayload(form: ProductFormState): AdminProductPayload {
   return {
     name: form.name,
@@ -90,9 +89,8 @@ function toGlassesModelPayload(productId: number, form: ProductFormState): Glass
 }
 
 export default function AdminProductsPage() {
-  const globalSearch = useAdminUiStore((state) => state.globalSearch);
-
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -227,8 +225,8 @@ export default function AdminProductsPage() {
   const filteredProducts = useMemo(() => {
     const list = productsQuery.data ?? [];
     return list.filter((product) => {
-      const matchesGlobal = globalSearch
-        ? `${product.name} ${product.description}`.toLowerCase().includes(globalSearch.toLowerCase())
+      const matchesGlobal = searchQuery
+        ? `${product.name} ${product.description}`.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
       const matchesCategory = categoryFilter ? String(product.category ?? "") === categoryFilter : true;
       const matchesGender = genderFilter ? product.gender === genderFilter : true;
@@ -240,7 +238,7 @@ export default function AdminProductsPage() {
             : !product.is_active;
       return matchesGlobal && matchesCategory && matchesGender && matchesActive;
     });
-  }, [productsQuery.data, globalSearch, categoryFilter, genderFilter, activeFilter]);
+  }, [productsQuery.data, searchQuery, categoryFilter, genderFilter, activeFilter]);
 
   const pageSize = 10;
   const pageCount = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
@@ -261,8 +259,8 @@ export default function AdminProductsPage() {
       label: "Product",
       render: (row: AdminProduct) => (
         <div>
-          <p className="font-medium text-white">{row.name}</p>
-          <p className="text-xs text-slate-400">#{row.id}</p>
+          <p className="font-medium text-[#2f2621]">{row.name}</p>
+          <p className="text-xs text-[#9e8e84]">#{row.id}</p>
         </div>
       ),
     },
@@ -281,20 +279,24 @@ export default function AdminProductsPage() {
       label: "Price",
       render: (row: AdminProduct) => (
         <div>
-          <p>${row.price}</p>
-          <p className="text-xs text-slate-400">Discount: {row.discount_price ? `$${row.discount_price}` : "None"}</p>
+          <p className="text-[#2f2621]">{formatPrice(row.price)}</p>
+          <p className="text-xs text-[#9e8e84]">Discount: {row.discount_price ? formatPrice(row.discount_price) : "None"}</p>
         </div>
       ),
     },
     {
       key: "active",
       label: "Status",
-      render: (row: AdminProduct) => <StatusBadge value={row.is_active ? "Active" : "Inactive"} />,
+      render: (row: AdminProduct) => (
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${warmStatusClass(row.is_active)}`}>
+          {row.is_active ? "Active" : "Inactive"}
+        </span>
+      ),
     },
     {
       key: "model",
       label: "3D Model",
-      render: (row: AdminProduct) => <span className="text-xs">{row.glasses_model?.glb_file_url || "Not set"}</span>,
+      render: (row: AdminProduct) => <span className="text-xs text-[#6e5d54]">{row.glasses_model?.glb_file_url || "Not set"}</span>,
     },
     {
       key: "actions",
@@ -327,14 +329,14 @@ export default function AdminProductsPage() {
               });
               setIsFormOpen(true);
             }}
-            className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
+            className="rounded-lg border border-[#ddc9bb] bg-white px-2.5 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => setImageProduct(row)}
-            className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
+            className="rounded-lg border border-[#ddc9bb] bg-white px-2.5 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
           >
             Images
           </button>
@@ -346,14 +348,18 @@ export default function AdminProductsPage() {
                 is_active: !row.is_active,
               })
             }
-            className="rounded-lg border border-cyan-700/70 px-2 py-1 text-xs text-cyan-200"
+            className={`rounded-lg border px-2.5 py-1 text-xs ${
+              row.is_active
+                ? "border-[#f0d4c6] bg-[#fdf3ec] text-[#a76040] hover:bg-[#fae7dc]"
+                : "border-[#d4eadf] bg-[#edf8f2] text-[#2d7d55] hover:bg-[#e2f2ea]"
+            }`}
           >
             {row.is_active ? "Deactivate" : "Activate"}
           </button>
           <button
             type="button"
             onClick={() => deleteMutation.mutate(row.id)}
-            className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
+            className="rounded-lg border border-[#f0cfcd] bg-[#fdf2f2] px-2.5 py-1 text-xs text-[#b34848] hover:bg-[#fae5e5]"
           >
             Delete
           </button>
@@ -362,34 +368,48 @@ export default function AdminProductsPage() {
     },
   ];
 
-  return (
-    <div className="space-y-4">
-      <AdminPageHeader
-        title="Product Management"
-        subtitle="Manage products, images, pricing, and 3D model mappings."
-        action={
-          <button
-            type="button"
-            onClick={() => {
-              setEditingProduct(null);
-              setFormState(defaultForm);
-              setIsFormOpen(true);
-            }}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950"
-          >
-            Add Product
-          </button>
-        }
-      />
+  const fieldClass =
+    "rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129] placeholder:text-[#a18f84] focus:border-[#d9b8a5] focus:outline-none focus:ring-2 focus:ring-[#edd6c8]";
+  const checkboxRowClass = "flex items-center gap-2 rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#4f423a]";
 
-      <FilterBar>
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-4xl text-[#241d18] [font-family:var(--font-heading),serif]">Product Management</h1>
+          <p className="mt-1 text-sm text-[#7b6f68]">Manage products, images, pricing, and 3D model mappings.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setEditingProduct(null);
+            setFormState(defaultForm);
+            setIsFormOpen(true);
+          }}
+          className="rounded-xl bg-[#C4714F] px-4 py-2 text-sm font-semibold text-[#fff8f2] shadow-[0_10px_24px_rgba(196,113,79,0.3)] hover:bg-[#b96543]"
+        >
+          Add Product
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-[#ece2d9] bg-white p-3 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <input
+          value={searchQuery}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            setPage(1);
+          }}
+          placeholder="Search products by name or description"
+          className={`${fieldClass} min-w-[220px] flex-1 sm:max-w-md`}
+        />
+
         <select
           value={categoryFilter}
           onChange={(event) => {
             setCategoryFilter(event.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="">All Categories</option>
           {(categoriesQuery.data ?? []).map((item) => (
@@ -405,7 +425,7 @@ export default function AdminProductsPage() {
             setGenderFilter(event.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="">All Genders</option>
           <option value="Men">Men</option>
@@ -419,33 +439,66 @@ export default function AdminProductsPage() {
             setActiveFilter(event.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-      </FilterBar>
+      </div>
 
-      <DataTable columns={columns} rows={paginatedProducts} rowKey={(row) => row.id} emptyLabel="No products found." />
+      <div className="overflow-hidden rounded-2xl border border-[#ece2d9] bg-white shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] border-collapse text-left">
+            <thead className="bg-[#f7efe8]">
+              <tr>
+                {columns.map((column) => (
+                  <th key={column.key} className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#9b8f88]">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-[#8a7c73]">
+                    No products found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedProducts.map((row) => (
+                  <tr key={row.id} className="border-t border-[#efe3d9] align-top transition hover:bg-[#fcf8f4]">
+                    {columns.map((column) => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-[#3a312b]">
+                        {column.render(row)}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"
           disabled={currentPage <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm disabled:opacity-50"
+          className="rounded-lg border border-[#ddc9bb] bg-white px-3 py-1.5 text-sm text-[#6b594f] hover:bg-[#f8eee7] disabled:opacity-50"
         >
           Prev
         </button>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-[#8a7c73]">
           Page {currentPage} / {pageCount}
         </p>
         <button
           type="button"
           disabled={currentPage >= pageCount}
           onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm disabled:opacity-50"
+          className="rounded-lg border border-[#ddc9bb] bg-white px-3 py-1.5 text-sm text-[#6b594f] hover:bg-[#f8eee7] disabled:opacity-50"
         >
           Next
         </button>
@@ -455,6 +508,7 @@ export default function AdminProductsPage() {
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         title={editingProduct ? "Edit Product" : "Create Product"}
+        tone="warm"
       >
         <form
           className="grid gap-3 sm:grid-cols-2"
@@ -468,13 +522,13 @@ export default function AdminProductsPage() {
             onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
             placeholder="Name"
             required
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm sm:col-span-2"
+            className={`${fieldClass} sm:col-span-2`}
           />
           <textarea
             value={formState.description}
             onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
             placeholder="Description"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm sm:col-span-2"
+            className={`${fieldClass} sm:col-span-2`}
             rows={3}
           />
           <input
@@ -484,7 +538,7 @@ export default function AdminProductsPage() {
             required
             type="number"
             step="0.01"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.discount_price}
@@ -492,13 +546,13 @@ export default function AdminProductsPage() {
             placeholder="Discount price"
             type="number"
             step="0.01"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
 
           <select
             value={formState.category}
             onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           >
             <option value="">Category</option>
             {(categoriesQuery.data ?? []).map((item) => (
@@ -511,7 +565,7 @@ export default function AdminProductsPage() {
           <select
             value={formState.collection}
             onChange={(event) => setFormState((prev) => ({ ...prev, collection: event.target.value }))}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           >
             <option value="">Collection</option>
             {(collectionsQuery.data ?? []).map((item) => (
@@ -524,7 +578,7 @@ export default function AdminProductsPage() {
           <select
             value={formState.frame_shape}
             onChange={(event) => setFormState((prev) => ({ ...prev, frame_shape: event.target.value }))}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           >
             <option value="">Frame Shape</option>
             {(frameShapesQuery.data ?? []).map((item) => (
@@ -537,7 +591,7 @@ export default function AdminProductsPage() {
           <select
             value={formState.frame_material}
             onChange={(event) => setFormState((prev) => ({ ...prev, frame_material: event.target.value }))}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           >
             <option value="">Frame Material</option>
             {(frameMaterialsQuery.data ?? []).map((item) => (
@@ -552,14 +606,14 @@ export default function AdminProductsPage() {
             onChange={(event) =>
               setFormState((prev) => ({ ...prev, gender: event.target.value as ProductFormState["gender"] }))
             }
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           >
             <option value="Men">Men</option>
             <option value="Women">Women</option>
             <option value="Unisex">Unisex</option>
           </select>
 
-          <label className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm">
+          <label className={checkboxRowClass}>
             <input
               type="checkbox"
               checked={formState.is_active}
@@ -572,7 +626,7 @@ export default function AdminProductsPage() {
             value={formState.glb_file_url}
             onChange={(event) => setFormState((prev) => ({ ...prev, glb_file_url: event.target.value }))}
             placeholder="GLB URL (/models/file.glb)"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm sm:col-span-2"
+            className={`${fieldClass} sm:col-span-2`}
           />
 
           <input
@@ -581,7 +635,7 @@ export default function AdminProductsPage() {
             placeholder="Scale"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.position_x}
@@ -589,7 +643,7 @@ export default function AdminProductsPage() {
             placeholder="Position X"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.position_y}
@@ -597,7 +651,7 @@ export default function AdminProductsPage() {
             placeholder="Position Y"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.position_z}
@@ -605,7 +659,7 @@ export default function AdminProductsPage() {
             placeholder="Position Z"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.rotation_x}
@@ -613,7 +667,7 @@ export default function AdminProductsPage() {
             placeholder="Rotation X"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.rotation_y}
@@ -621,7 +675,7 @@ export default function AdminProductsPage() {
             placeholder="Rotation Y"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
           <input
             value={formState.rotation_z}
@@ -629,13 +683,13 @@ export default function AdminProductsPage() {
             placeholder="Rotation Z"
             type="number"
             step="0.001"
-            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            className={fieldClass}
           />
 
           <button
             type="submit"
             disabled={upsertProductMutation.isPending}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 sm:col-span-2"
+            className="rounded-xl bg-[#C4714F] px-4 py-2 text-sm font-semibold text-[#fff8f2] shadow-[0_10px_24px_rgba(196,113,79,0.3)] hover:bg-[#b96543] disabled:opacity-60 sm:col-span-2"
           >
             {upsertProductMutation.isPending ? "Saving..." : editingProduct ? "Save Changes" : "Create Product"}
           </button>
@@ -650,6 +704,7 @@ export default function AdminProductsPage() {
           setIsPrimaryImage(false);
         }}
         title={`Manage Images${imageProduct ? ` - ${imageProduct.name}` : ""}`}
+        tone="warm"
       >
         <div className="space-y-4">
           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
@@ -657,9 +712,9 @@ export default function AdminProductsPage() {
               type="file"
               accept="image/*"
               onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
-              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+              className={fieldClass}
             />
-            <label className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm">
+            <label className={checkboxRowClass}>
               <input
                 type="checkbox"
                 checked={isPrimaryImage}
@@ -672,21 +727,21 @@ export default function AdminProductsPage() {
             type="button"
             disabled={!imageFile || uploadImageMutation.isPending}
             onClick={() => uploadImageMutation.mutate()}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60"
+            className="rounded-xl bg-[#C4714F] px-4 py-2 text-sm font-semibold text-[#fff8f2] shadow-[0_10px_24px_rgba(196,113,79,0.3)] hover:bg-[#b96543] disabled:opacity-60"
           >
             Upload Image
           </button>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {productImagesQuery.data?.map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-800 p-3">
+              <div key={item.id} className="rounded-xl border border-[#ece2d9] bg-white p-3">
                 <img src={imageUrl(item.image)} alt="Product" className="h-36 w-full rounded-lg object-cover" />
                 <div className="mt-2 flex items-center justify-between">
-                  <p className="text-xs text-slate-400">{item.is_primary ? "Primary" : "Secondary"}</p>
+                  <p className="text-xs text-[#8a7c73]">{item.is_primary ? "Primary" : "Secondary"}</p>
                   <button
                     type="button"
                     onClick={() => deleteImageMutation.mutate(item.id)}
-                    className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
+                    className="rounded-lg border border-[#f0cfcd] bg-[#fdf2f2] px-2 py-1 text-xs text-[#b34848] hover:bg-[#fae5e5]"
                   >
                     Delete
                   </button>
@@ -694,7 +749,7 @@ export default function AdminProductsPage() {
               </div>
             ))}
             {(productImagesQuery.data?.length ?? 0) === 0 ? (
-              <p className="text-sm text-slate-400">No images uploaded.</p>
+              <p className="text-sm text-[#8a7c73]">No images uploaded.</p>
             ) : null}
           </div>
         </div>
@@ -702,3 +757,4 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+

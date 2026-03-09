@@ -39,8 +39,8 @@ export default function AdminCustomerDetailPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Profile</h2>
-          <div className="space-y-1 text-sm text-slate-300">
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Profile</h2>
+          <div className="space-y-1 text-sm text-[#4f423a]">
             <p>Email: {customer.email}</p>
             <p>Role: {customer.role}</p>
             <p>Joined: {formatDate(customer.date_joined)}</p>
@@ -49,8 +49,8 @@ export default function AdminCustomerDetailPage() {
         </AdminPanel>
 
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Engagement</h2>
-          <div className="space-y-1 text-sm text-slate-300">
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Engagement</h2>
+          <div className="space-y-1 text-sm text-[#4f423a]">
             <p>Total Orders: {customer.order_count}</p>
             <p>Total Spend: {formatPrice(customer.total_spend)}</p>
             <p>Total Reviews: {customer.review_count}</p>
@@ -58,14 +58,14 @@ export default function AdminCustomerDetailPage() {
         </AdminPanel>
 
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Wishlist Summary</h2>
-          <p className="text-sm text-slate-400">N/A</p>
-          <p className="mt-1 text-xs text-slate-500">Admin wishlist aggregate endpoint is pending integration.</p>
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Wishlist Summary</h2>
+          <p className="text-sm text-[#8a7c73]">N/A</p>
+          <p className="mt-1 text-xs text-[#8a7c73]">Admin wishlist aggregate endpoint is pending integration.</p>
         </AdminPanel>
       </div>
 
       <AdminPanel>
-        <h2 className="mb-3 text-lg font-semibold text-white">Order History</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Order History</h2>
         <DataTable
           columns={[
             {
@@ -96,7 +96,7 @@ export default function AdminCustomerDetailPage() {
       </AdminPanel>
 
       <AdminPanel>
-        <h2 className="mb-3 text-lg font-semibold text-white">Reviews History</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Reviews History</h2>
         <DataTable
           columns={[
             {
@@ -128,3 +128,4 @@ export default function AdminCustomerDetailPage() {
     </div>
   );
 }
+

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
   BarChart,
+  CartesianGrid,
   Cell,
   Line,
   LineChart,
@@ -18,10 +19,6 @@ import {
 
 import AdminErrorState from "@/components/admin/error-state";
 import AdminLoadingState from "@/components/admin/loading-state";
-import KpiCard from "@/components/admin/kpi-card";
-import AdminPageHeader from "@/components/admin/page-header";
-import AdminPanel from "@/components/admin/panel";
-import StatusBadge from "@/components/admin/status-badge";
 import { adminApi } from "@/lib/api/admin/services";
 import {
   buildDashboardKpis,
@@ -31,7 +28,16 @@ import {
 } from "@/lib/admin/analytics";
 import { formatDate, formatPrice } from "@/lib/utils";
 
-const pieColors = ["#22c55e", "#38bdf8", "#f97316", "#f43f5e", "#818cf8", "#eab308"];
+const pieColors = ["#C4714F", "#C4A882", "#8FAF8A", "#AAAAAA"];
+
+function statusBadgeClass(value: string) {
+  const key = value.toLowerCase();
+  if (key === "pending") return "bg-[#f7e7de] text-[#a76040]";
+  if (key === "confirmed" || key === "shipped") return "bg-[#f2ece5] text-[#6b594f]";
+  if (key === "delivered" || key === "paid" || key === "success") return "bg-[#e9f5ee] text-[#2d7d55]";
+  if (key === "cancelled" || key === "failed") return "bg-[#fce9e9] text-[#b34848]";
+  return "bg-[#f2ece5] text-[#6b594f]";
+}
 
 export default function AdminDashboardPage() {
   const [trendMode, setTrendMode] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -61,6 +67,9 @@ export default function AdminDashboardPage() {
     return topSellingProducts(dashboardQuery.data);
   }, [dashboardQuery.data]);
 
+  const topProductsAxisPadding =
+    topProductsData.length <= 2 ? 240 : topProductsData.length <= 4 ? 120 : 16;
+
   if (dashboardQuery.isLoading) {
     return <AdminLoadingState label="Loading dashboard metrics..." />;
   }
@@ -74,29 +83,50 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Dashboard" subtitle="Operations snapshot for Akila ecommerce." />
+      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-4xl text-[#241d18] [font-family:var(--font-heading),serif]">Dashboard</h1>
+          <p className="mt-1 text-sm text-[#7b6f68]">Operations snapshot for Akila ecommerce.</p>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <KpiCard label="Total Revenue" value={formatPrice(kpis.totalRevenue)} tone="good" />
-        <KpiCard label="Total Orders" value={String(kpis.totalOrders)} />
-        <KpiCard label="Total Customers" value={String(kpis.totalCustomers)} />
-        <KpiCard label="Total Products" value={String(kpis.totalProducts)} />
-        <KpiCard label="Pending Orders" value={String(kpis.pendingOrders)} tone="warn" />
-        <KpiCard label="Paid vs Failed" value={`${kpis.paidPayments} / ${kpis.failedPayments}`} />
+        {[
+          { label: "Total Revenue", value: formatPrice(kpis.totalRevenue), tone: "good" as const },
+          { label: "Total Orders", value: String(kpis.totalOrders), tone: "default" as const },
+          { label: "Total Customers", value: String(kpis.totalCustomers), tone: "default" as const },
+          { label: "Total Products", value: String(kpis.totalProducts), tone: "default" as const },
+          { label: "Pending Orders", value: String(kpis.pendingOrders), tone: "warn" as const },
+          { label: "Paid vs Failed", value: `${kpis.paidPayments} / ${kpis.failedPayments}`, tone: "default" as const },
+        ].map((card) => (
+          <article
+            key={card.label}
+            className={`rounded-2xl border bg-white p-4 shadow-[0_2px_16px_rgba(63,42,31,0.08)] ${
+              card.tone === "good"
+                ? "border-[#d4eadf]"
+                : card.tone === "warn"
+                  ? "border-[#f0dfd1]"
+                  : "border-[#ece2d9]"
+            }`}
+          >
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[#9b8f88]">{card.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-[#2f2621]">{card.value}</p>
+          </article>
+        ))}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <AdminPanel>
+        <section className="rounded-2xl border border-[#ece2d9] bg-white p-5 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Sales Trend</h2>
+            <h2 className="text-lg font-semibold text-[#2f2621]">Sales Trend</h2>
             <div className="flex gap-2">
               {(["daily", "weekly", "monthly"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setTrendMode(mode)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                    trendMode === mode ? "bg-cyan-500/20 text-cyan-200" : "bg-slate-800 text-slate-300"
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                    trendMode === mode ? "bg-[#f7e7de] text-[#a76040]" : "bg-[#f4ede6] text-[#6b594f]"
                   }`}
                 >
                   {mode}
@@ -107,21 +137,21 @@ export default function AdminDashboardPage() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesData}>
-                <XAxis dataKey="label" stroke="#94a3b8" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                <YAxis stroke="#94a3b8" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                <XAxis dataKey="label" stroke="#b9aaa0" tick={{ fill: "#9e8e84", fontSize: 12 }} />
+                <YAxis stroke="#b9aaa0" tick={{ fill: "#9e8e84", fontSize: 12 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#22d3ee" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="revenue" stroke="#C4714F" strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </AdminPanel>
+        </section>
 
-        <AdminPanel>
-          <h2 className="mb-4 text-lg font-semibold text-white">Order Status Distribution</h2>
+        <section className="rounded-2xl border border-[#ece2d9] bg-white p-5 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+          <h2 className="mb-4 text-lg font-semibold text-[#2f2621]">Order Status Distribution</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={orderStatusData} dataKey="value" nameKey="name" outerRadius={110}>
+                <Pie data={orderStatusData} dataKey="value" nameKey="name" outerRadius={110} rootTabIndex={-1}>
                   {orderStatusData.map((entry, index) => (
                     <Cell key={entry.name} fill={pieColors[index % pieColors.length]} />
                   ))}
@@ -130,77 +160,103 @@ export default function AdminDashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </AdminPanel>
+        </section>
       </div>
 
-      <AdminPanel>
-        <h2 className="mb-4 text-lg font-semibold text-white">Top-Selling Products</h2>
+      <section className="rounded-2xl border border-[#ece2d9] bg-white p-5 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+        <h2 className="mb-4 text-lg font-semibold text-[#2f2621]">Top-Selling Products</h2>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topProductsData}>
-              <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-              <YAxis stroke="#94a3b8" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="units" fill="#38bdf8" radius={[8, 8, 0, 0]} />
+            <BarChart
+              data={topProductsData}
+              margin={{ top: 8, right: 18, left: 6, bottom: 6 }}
+              barCategoryGap="35%"
+              barGap={0}
+            >
+              <CartesianGrid stroke="#f1e8df" strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="name"
+                stroke="#b9aaa0"
+                tick={{ fill: "#9e8e84", fontSize: 12 }}
+                tickLine={false}
+                axisLine={{ stroke: "#d8c9bd" }}
+                padding={{ left: topProductsAxisPadding, right: topProductsAxisPadding }}
+              />
+              <YAxis
+                stroke="#b9aaa0"
+                tick={{ fill: "#9e8e84", fontSize: 12 }}
+                tickLine={false}
+                axisLine={{ stroke: "#d8c9bd" }}
+                allowDecimals={false}
+              />
+              <Tooltip
+                cursor={{ fill: "transparent" }}
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "1px solid #e6d6c9",
+                  boxShadow: "0 8px 24px rgba(63,42,31,0.14)",
+                  backgroundColor: "#fffaf6",
+                  color: "#3d3129",
+                }}
+                labelStyle={{ color: "#2f2621", fontWeight: 600 }}
+                itemStyle={{ color: "#a76040" }}
+              />
+              <Bar dataKey="units" fill="#C4714F" radius={[10, 10, 0, 0]} maxBarSize={74} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </AdminPanel>
+      </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <AdminPanel>
-          <h2 className="mb-4 text-lg font-semibold text-white">Latest Orders</h2>
+        <section className="rounded-2xl border border-[#ece2d9] bg-white p-5 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+          <h2 className="mb-4 text-lg font-semibold text-[#2f2621]">Latest Orders</h2>
           <div className="space-y-3">
             {latestOrders.length === 0 ? (
-              <p className="text-sm text-slate-400">No orders found.</p>
+              <p className="text-sm text-[#8a7c73]">No orders found.</p>
             ) : (
               latestOrders.map((order) => (
-                <div key={order.id} className="rounded-xl border border-slate-800 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-slate-200">Order #{order.id}</p>
-                    <StatusBadge value={order.status} />
+                <div key={order.id} className="rounded-xl border border-[#efe3d9] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-[#4f423a]">Order #{order.id}</p>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>
+                      {order.status}
+                    </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-400">{formatDate(order.created_at)}</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{formatPrice(order.total_amount)}</p>
+                  <p className="mt-1 text-sm text-[#8a7c73]">{formatDate(order.created_at)}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#2f2621]">{formatPrice(order.total_amount)}</p>
                 </div>
               ))
             )}
           </div>
-        </AdminPanel>
+        </section>
 
-        <AdminPanel>
-          <h2 className="mb-4 text-lg font-semibold text-white">Latest Reviews</h2>
+        <section className="rounded-2xl border border-[#ece2d9] bg-white p-5 shadow-[0_2px_16px_rgba(63,42,31,0.08)]">
+          <h2 className="mb-4 text-lg font-semibold text-[#2f2621]">Latest Reviews</h2>
           <div className="space-y-3">
             {latestReviews.length === 0 ? (
-              <p className="text-sm text-slate-400">No reviews found.</p>
+              <p className="text-sm text-[#8a7c73]">No reviews found.</p>
             ) : (
               latestReviews.map((review) => (
-                <div key={review.id} className="rounded-xl border border-slate-800 p-3">
-                  <p className="text-sm text-slate-200">{review.user_email}</p>
-                  <p className="mt-1 text-sm text-slate-400">Rating: {review.rating}/5</p>
-                  <p className="mt-1 text-sm text-slate-300">{review.comment || "No comment"}</p>
+                <div key={review.id} className="rounded-xl border border-[#efe3d9] p-3">
+                  <p className="text-sm text-[#4f423a]">{review.user_email}</p>
+                  <p className="mt-1 text-sm text-[#8a7c73]">Rating: {review.rating}/5</p>
+                  <p className="mt-1 text-sm text-[#64534a]">{review.comment || "No comment"}</p>
                 </div>
               ))
             )}
           </div>
-        </AdminPanel>
+        </section>
       </div>
 
-      <AdminPanel>
-        <h2 className="text-lg font-semibold text-white">Attention Signals</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-800 p-3">
-            <p className="text-sm text-slate-300">Low-stock products</p>
-            <p className="mt-1 text-xl font-semibold text-white">N/A</p>
-            <p className="mt-1 text-xs text-slate-500">Stock tracking is not available in current backend model.</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 p-3">
-            <p className="text-sm text-slate-300">Returns risk score</p>
-            <p className="mt-1 text-xl font-semibold text-white">N/A</p>
-            <p className="mt-1 text-xs text-slate-500">Returns analytics endpoint pending integration.</p>
-          </div>
-        </div>
-      </AdminPanel>
+      <style jsx global>{`
+        .recharts-wrapper:focus,
+        .recharts-surface:focus,
+        .recharts-sector:focus,
+        .recharts-rectangle:focus {
+          outline: none !important;
+        }
+      `}</style>
     </div>
   );
 }
+

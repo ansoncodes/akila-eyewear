@@ -51,26 +51,26 @@ export default function AdminOrderDetailPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <AdminPanel className="xl:col-span-2">
-          <h2 className="mb-3 text-lg font-semibold text-white">Items</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Items</h2>
           <div className="space-y-3">
             {order.items.map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-800 p-3">
-                <p className="text-sm text-white">{item.product_name}</p>
-                <p className="mt-1 text-xs text-slate-400">Qty: {item.quantity}</p>
-                <p className="mt-1 text-xs text-slate-300">Price at purchase: {formatPrice(item.price_at_purchase)}</p>
+              <div key={item.id} className="rounded-xl border border-[#ece2d9] bg-white p-3">
+                <p className="text-sm text-[#2f2621]">{item.product_name}</p>
+                <p className="mt-1 text-xs text-[#8a7c73]">Qty: {item.quantity}</p>
+                <p className="mt-1 text-xs text-[#6b594f]">Price at purchase: {formatPrice(item.price_at_purchase)}</p>
               </div>
             ))}
           </div>
         </AdminPanel>
 
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Status</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Status</h2>
           <div className="space-y-3">
             <StatusBadge value={order.status} />
             <select
               value={order.status}
               onChange={(event) => statusMutation.mutate(event.target.value as AdminOrder["status"])}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
             >
               {orderStatuses.map((status) => (
                 <option key={status} value={status}>
@@ -78,17 +78,17 @@ export default function AdminOrderDetailPage() {
                 </option>
               ))}
             </select>
-            <p className="text-sm text-slate-400">Total: {formatPrice(order.total_amount)}</p>
-            <p className="text-sm text-slate-400">Customer ID: {order.user}</p>
+            <p className="text-sm text-[#8a7c73]">Total: {formatPrice(order.total_amount)}</p>
+            <p className="text-sm text-[#8a7c73]">Customer ID: {order.user}</p>
           </div>
         </AdminPanel>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Shipping Address</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Shipping Address</h2>
           {order.shipping_address ? (
-            <div className="space-y-1 text-sm text-slate-300">
+            <div className="space-y-1 text-sm text-[#4f423a]">
               <p>{order.shipping_address.full_name}</p>
               <p>{order.shipping_address.phone}</p>
               <p>{order.shipping_address.address_line1}</p>
@@ -101,14 +101,14 @@ export default function AdminOrderDetailPage() {
               </p>
             </div>
           ) : (
-            <p className="text-sm text-slate-400">Shipping address unavailable.</p>
+            <p className="text-sm text-[#8a7c73]">Shipping address unavailable.</p>
           )}
         </AdminPanel>
 
         <AdminPanel>
-          <h2 className="mb-3 text-lg font-semibold text-white">Payment</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Payment</h2>
           {order.payment ? (
-            <div className="space-y-1 text-sm text-slate-300">
+            <div className="space-y-1 text-sm text-[#4f423a]">
               <p>Amount: {formatPrice(order.payment.amount)}</p>
               <p>Status: {order.payment.status}</p>
               <p>Method: {order.payment.payment_method}</p>
@@ -116,20 +116,21 @@ export default function AdminOrderDetailPage() {
               <p>Created: {formatDate(order.payment.created_at)}</p>
             </div>
           ) : (
-            <p className="text-sm text-slate-400">Payment info unavailable.</p>
+            <p className="text-sm text-[#8a7c73]">Payment info unavailable.</p>
           )}
         </AdminPanel>
       </div>
 
       <AdminPanel>
-        <h2 className="mb-3 text-lg font-semibold text-white">Timeline</h2>
-        <div className="space-y-2 text-sm text-slate-300">
+        <h2 className="mb-3 text-lg font-semibold text-[#2f2621]">Timeline</h2>
+        <div className="space-y-2 text-sm text-[#4f423a]">
           <p>Order created: {formatDate(order.created_at)}</p>
           <p>Current status: {order.status}</p>
           <p>Payment status: {order.payment?.status ?? "Pending"}</p>
-          <p className="text-xs text-slate-500">Detailed event timeline endpoint is pending integration.</p>
+          <p className="text-xs text-[#8a7c73]">Detailed event timeline endpoint is pending integration.</p>
         </div>
       </AdminPanel>
     </div>
   );
 }
+

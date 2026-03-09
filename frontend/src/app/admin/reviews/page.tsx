@@ -73,14 +73,14 @@ export default function AdminReviewsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <AdminPageHeader title="Reviews Moderation" subtitle="Inspect customer feedback and moderate content quality." />
 
       <FilterBar>
         <select
           value={ratingFilter}
           onChange={(event) => setRatingFilter(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
         >
           <option value="">All Ratings</option>
           <option value="5">5</option>
@@ -93,7 +93,7 @@ export default function AdminReviewsPage() {
         <select
           value={productFilter}
           onChange={(event) => setProductFilter(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
         >
           <option value="">All Products</option>
           {(productsQuery.data ?? []).map((product) => (
@@ -107,14 +107,14 @@ export default function AdminReviewsPage() {
           type="date"
           value={dateFrom}
           onChange={(event) => setDateFrom(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
         />
 
         <input
           type="date"
           value={dateTo}
           onChange={(event) => setDateTo(event.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+          className="rounded-xl border border-[#e6d6c9] bg-white px-3 py-2 text-sm text-[#3d3129]"
         />
       </FilterBar>
 
@@ -153,7 +153,7 @@ export default function AdminReviewsPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedReview(row)}
-                  className="rounded-lg border border-slate-700 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[#ddc9bb] bg-white px-2 py-1 text-xs text-[#6b594f] hover:bg-[#f8eee7]"
                 >
                   View
                 </button>
@@ -161,14 +161,14 @@ export default function AdminReviewsPage() {
                   type="button"
                   disabled
                   title="Visibility field is not available in backend"
-                  className="cursor-not-allowed rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-500"
+                  className="cursor-not-allowed rounded-lg border border-[#e6d6c9] bg-[#f7efe8] px-2 py-1 text-xs text-[#a18f84]"
                 >
                   Visibility N/A
                 </button>
                 <button
                   type="button"
                   onClick={() => deleteMutation.mutate(row.id)}
-                  className="rounded-lg border border-rose-700/70 px-2 py-1 text-xs text-rose-200"
+                  className="rounded-lg border border-[#f0cfcd] bg-[#fdf2f2] px-2 py-1 text-xs text-[#b34848] hover:bg-[#fae5e5]"
                 >
                   Delete
                 </button>
@@ -181,25 +181,26 @@ export default function AdminReviewsPage() {
         emptyLabel="No reviews found."
       />
 
-      <AdminModal open={Boolean(selectedReview)} onClose={() => setSelectedReview(null)} title="Review Detail">
+      <AdminModal open={Boolean(selectedReview)} onClose={() => setSelectedReview(null)} title="Review Detail" tone="warm">
         {selectedReview ? (
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-[#3a312b]">
             <p>
-              <span className="text-slate-400">Customer:</span> {selectedReview.user_email}
+              <span className="text-[#8a7c73]">Customer:</span> {selectedReview.user_email}
             </p>
             <p>
-              <span className="text-slate-400">Product:</span> {productMap.get(selectedReview.product) ?? `#${selectedReview.product}`}
+              <span className="text-[#8a7c73]">Product:</span> {productMap.get(selectedReview.product) ?? `#${selectedReview.product}`}
             </p>
             <p>
-              <span className="text-slate-400">Rating:</span> {selectedReview.rating}/5
+              <span className="text-[#8a7c73]">Rating:</span> {selectedReview.rating}/5
             </p>
             <p>
-              <span className="text-slate-400">Created:</span> {formatDate(selectedReview.created_at)}
+              <span className="text-[#8a7c73]">Created:</span> {formatDate(selectedReview.created_at)}
             </p>
-            <p className="rounded-xl border border-slate-800 p-3">{selectedReview.comment || "No comment"}</p>
+            <p className="rounded-xl border border-[#ece2d9] bg-white p-3">{selectedReview.comment || "No comment"}</p>
           </div>
         ) : null}
       </AdminModal>
     </div>
   );
 }
+

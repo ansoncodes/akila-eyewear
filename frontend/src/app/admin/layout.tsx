@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { isAllowed, isLoading } = useRequireAdmin(isProtectedRoute);
 
   if (isLoginPage) {
-    return <div className="min-h-screen bg-slate-950 text-slate-100">{children}</div>;
+    return <div className="min-h-screen bg-[#FAF8F5] text-[#2a241f]">{children}</div>;
   }
 
   if (isLoading || !isAllowed) {
