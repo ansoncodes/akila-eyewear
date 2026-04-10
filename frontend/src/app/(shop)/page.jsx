@@ -237,7 +237,7 @@ export default function HomePage() {
                         alt={product.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                        className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                        className="object-contain p-4 transition duration-500 group-hover:scale-[1.04]"
                         unoptimized={cardImage.startsWith("http")}
                       />
                       <Link
