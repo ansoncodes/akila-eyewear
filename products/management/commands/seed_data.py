@@ -1,4 +1,4 @@
-﻿from io import BytesIO
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
