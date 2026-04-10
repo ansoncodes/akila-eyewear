@@ -1,9 +1,5 @@
-from io import BytesIO
-
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
-from PIL import Image
 
 from products.models import Category, Collection, FrameMaterial, FrameShape, GlassesModel, Product, ProductImage
 
@@ -88,7 +84,6 @@ class Command(BaseCommand):
                 "shape": "Rectangle",
                 "material": "Acetate",
                 "gender": Product.Gender.UNISEX,
-                "color": (39, 42, 48),
                 "glb": "/models/blue_rectangle_glasses.glb",
                 "calibration": {
                     "scale": 1.0,
@@ -109,7 +104,6 @@ class Command(BaseCommand):
                 "shape": "Round",
                 "material": "Metal",
                 "gender": Product.Gender.UNISEX,
-                "color": (58, 80, 109),
                 "glb": "/models/green_round_sunglasses.glb",
                 "calibration": {
                     "scale": 0.98,
@@ -130,7 +124,6 @@ class Command(BaseCommand):
                 "shape": "Cat Eye",
                 "material": "Acetate",
                 "gender": Product.Gender.WOMEN,
-                "color": (130, 65, 74),
                 "glb": "/models/ray-ban_glasses.glb",
                 "calibration": {
                     "scale": 1.02,
@@ -151,7 +144,6 @@ class Command(BaseCommand):
                 "shape": "Aviator",
                 "material": "Metal",
                 "gender": Product.Gender.MEN,
-                "color": (92, 88, 68),
                 "glb": "/models/thug_life_glasses.glb",
                 "calibration": {
                     "scale": 1.05,
@@ -172,7 +164,6 @@ class Command(BaseCommand):
                 "shape": "Rectangle",
                 "material": "TR90",
                 "gender": Product.Gender.MEN,
-                "color": (53, 91, 77),
                 "glb": "/models/reading_glasses.glb",
                 "calibration": {
                     "scale": 0.97,
@@ -202,13 +193,18 @@ class Command(BaseCommand):
                 },
             )
 
-            if not product.images.exists():
-                image_content = self.generate_image(item["color"])
-                ProductImage.objects.create(
-                    product=product,
-                    image=ContentFile(image_content, name=f"product_{index}.jpg"),
-                    is_primary=True,
-                )
+            # Ensure the DB record always points to the correct pre-existing
+            # image file. The actual files (product_1.jpg … product_5.jpg) live
+            # in media/products/ and are never generated or overwritten by seed.
+            image_path = f"products/product_{index}.jpg"
+            img, created = ProductImage.objects.get_or_create(
+                product=product,
+                is_primary=True,
+                defaults={"image": image_path},
+            )
+            if not created and img.image.name != image_path:
+                img.image.name = image_path
+                img.save()
 
             defaults = {"glb_file_url": item["glb"]}
             defaults.update(item["calibration"])
@@ -217,8 +213,3 @@ class Command(BaseCommand):
                 defaults=defaults,
             )
 
-    def generate_image(self, rgb):
-        image = Image.new("RGB", (1200, 800), rgb)
-        buffer = BytesIO()
-        image.save(buffer, format="JPEG", quality=90)
-        return buffer.getvalue()
