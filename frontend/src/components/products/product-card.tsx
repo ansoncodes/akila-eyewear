@@ -22,7 +22,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           <img
             src={imageSrc}
             alt={product.name}
-            className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]"
+            className="h-full w-full object-contain mix-blend-multiply transition duration-300 group-hover:scale-[1.02]"
           />
         </div>
       </Link>
