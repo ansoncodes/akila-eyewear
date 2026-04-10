@@ -13,6 +13,14 @@ Next.js App Router + TypeScript frontend for Akila eyewear ecommerce.
 - MediaPipe Tasks Vision
 - Recharts
 
+## Demo Account
+
+You can test the storefront and the full admin panel using the seeded sample account:
+- **Email**: `admin@akila.com`
+- **Password**: `Admin@12345`
+
+Log in at `/admin/login` or via the standard user login page.
+
 ## Setup
 1. Install dependencies
 
